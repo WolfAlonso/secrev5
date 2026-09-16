@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Despacho de Concejo - Secretaría Municipal</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- CONFIGURACIÓN DE SUPABASE -->
+  <script>
+    const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub2pvdGRnZWdmbXd1ZWtzam1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDEwMjIsImV4cCI6MjEwNTA3NzAyMn0.cPd5_f3529iFvLWJDhkQ_KNanD6D_YLcZkU67MtHAds';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <!-- SCRIPTS DEL SISTEMA Y SIDEBAR CENTRALIZADO -->
+  <script src="js/auth.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/notificaciones.js"></script>
+
+  <style>
+    .bg-dashboard-custom {
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.90)), url('img/bg-login.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+    }
+  </style>
+</head>
+<body class="bg-dashboard-custom min-h-screen text-slate-100 font-sans antialiased flex flex-col">
+
+  <!-- CONTENEDOR DINÁMICO DE SIDEBAR FLOTANTE -->
+  <div id="sidebar-container"></div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="flex-1 flex flex-col min-h-screen w-full">
+    <header class="md:hidden bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-30">
+      <div class="flex items-center space-x-3">
+        <span class="font-bold text-sm text-white pl-8">Despacho de Concejo</span>
+      </div>
+      <button onclick="recargarSeccionActual()" class="p-2 text-cyan-400 hover:text-white bg-slate-800 rounded-xl text-xs"><i class="fa-solid fa-rotate"></i></button>
+    </header>
+
+    <main class="p-4 sm:p-8 flex-1 space-y-6 max-w-7xl mx-auto w-full">
+
+      <!-- BARRA SUPERIOR DE ACCIONES -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 backdrop-blur-md p-6 rounded-3xl border border-slate-700/50 shadow-xl">
+        <div>
+          <h2 id="view-title" class="text-xl font-extrabold text-white tracking-tight flex items-center">
+            <i class="fa-solid fa-calendar-days text-cyan-400 mr-3"></i> <span id="txt-modulo-titulo">Agendas de Concejo</span>
+          </h2>
+          <p id="view-subtitle" class="text-xs text-slate-400 mt-1">Control documental de convocatorias y agendas oficiales de la Secretaría Municipal</p>
+        </div>
+        <button id="btn-accion-principal" onclick="abrirModalGeneral()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-5 py-2.5 rounded-2xl font-bold transition flex items-center shadow-lg shadow-cyan-900/40 hidden">
+          <i class="fa-solid fa-plus mr-1.5"></i> <span id="btn-txt-nuevo">Registrar Agenda</span>
+        </button>
+      </div>
+
+      <!-- VISTA 1: AGENDAS DE CONCEJO -->
+      <div id="section-agendas" class="bg-slate-800/60 backdrop-blur-md rounded-3xl border border-slate-700/50 p-6 shadow-2xl space-y-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs text-slate-400 uppercase font-bold border-b border-slate-700/60">
+              <tr>
+                <th class="py-3.5 px-4">No. Agenda</th>
+                <th class="py-3.5 px-4">Tipo de Sesión</th>
+                <th class="py-3.5 px-4">Fecha de Sesión</th>
+                <th class="py-3.5 px-4 text-center">Estado Agenda</th>
+                <th class="py-3.5 px-4 text-center">Documento PDF</th>
+                <th class="py-3.5 px-4 text-center th-acciones hidden">Opciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-agendas" class="divide-y divide-slate-700/40">
+              <tr><td colspan="6" class="py-8 text-center text-slate-500 font-medium">Cargando agendas desde la base de datos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VISTA 2: CONVOCATORIAS -->
+      <div id="section-convocatorias" class="bg-slate-800/60 backdrop-blur-md rounded-3xl border border-slate-700/50 p-6 shadow-2xl space-y-4 hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs text-slate-400 uppercase font-bold border-b border-slate-700/60">
+              <tr>
+                <th class="py-3.5 px-4">No. Convocatoria</th>
+                <th class="py-3.5 px-4">Fecha y Hora</th>
+                <th class="py-3.5 px-4 text-center">Documento PDF</th>
+                <th class="py-3.5 px-4 text-center th-acciones hidden">Opciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-convocatorias" class="divide-y divide-slate-700/40">
+              <tr><td colspan="4" class="py-8 text-center text-slate-500 font-medium">Cargando convocatorias desde la base de datos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-xs text-slate-500 border-t border-slate-800/80">
+      &copy; 2026 Municipalidad de Quetzaltenango &bull; Secretaría Municipal
+    </footer>
+  </div>
+
+  <!-- MODAL REGISTRO / EDICIÓN AGENDAS -->
+  <div id="modal-agenda" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 id="modal-titulo-agenda" class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-calendar-plus text-cyan-400 mr-2"></i> Registrar / Modificar Agenda</h3>
+        <button onclick="cerrarModalAgenda()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="guardarAgenda(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-agenda-id">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Número de Agenda</label>
+          <input type="text" id="agenda-numero" required placeholder="Ej. 01-2026" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Tipo de Sesión</label>
+          <select id="agenda-tipo" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="">-- Seleccionar Tipo --</option>
+            <option value="Ordinaria">Ordinaria</option>
+            <option value="Extraordinaria">Extraordinaria</option>
+            <option value="Solemne">Solemne</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Fecha de Sesión</label>
+          <input type="date" id="agenda-fecha" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Estado de la Agenda</label>
+          <select id="agenda-estado" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="Convocada">Convocada</option>
+            <option value="En desarrollo">En desarrollo</option>
+            <option value="Concluida">Concluida</option>
+            <option value="Suspendida">Suspendida</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Documento PDF</label>
+          <input type="file" id="agenda-pdf" accept=".pdf" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
+        </div>
+        <div class="flex justify-end space-x-2 pt-4 border-t border-slate-800">
+          <button type="button" onclick="cerrarModalAgenda()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-cyan-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-900/40">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO / EDICIÓN CONVOCATORIAS -->
+  <div id="modal-convocatoria" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-100">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 id="modal-titulo-convocatoria" class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-scroll text-cyan-400 mr-2"></i> Registrar Convocatoria</h3>
+        <button onclick="cerrarModalConvocatoria()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="guardarConvocatoria(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-convocatoria-id">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Número de Convocatoria</label>
+          <input type="text" id="convocatoria-numero" required placeholder="Ej. CONV-01-2026" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Fecha y Hora de la Convocatoria</label>
+          <input type="datetime-local" id="convocatoria-fecha" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Documento PDF</label>
+          <input type="file" id="convocatoria-pdf" accept=".pdf" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
+        </div>
+        <div class="flex justify-end space-x-2 pt-4 border-t border-slate-800">
+          <button type="button" onclick="cerrarModalConvocatoria()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-cyan-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-900/40">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // VERIFICACIÓN INMEDIATA DE SEGURIDAD
+    const userSesion = verificarSesion();
+    if (!userSesion || !tienePermisoLectura('agendas')) {
+      alert('Acceso restringido: No cuenta con permisos para consultar este módulo.');
+      window.location.href = 'index.html';
+    }
+
+    let moduloActual = 'agendas';
+    let cacheAgendas = [];
+    let cacheConvocatorias = [];
+    let permitirEdicion = tienePermisoControl('agendas');
+
+    if (permitirEdicion) {
+      document.getElementById('btn-accion-principal').classList.remove('hidden');
+      document.querySelectorAll('.th-acciones').forEach(el => el.classList.remove('hidden'));
+    }
+
+    // Detectar vista inicial (?vista=agendas o ?vista=convocatorias)
+    const urlParams = new URLSearchParams(window.location.search);
+    const vistaParam = urlParams.get('vista');
+    if (vistaParam === 'convocatorias') {
+      cambiarVistaModulo('convocatorias');
+    } else {
+      cambiarVistaModulo('agendas');
+    }
+
+    function cambiarVistaModulo(modulo) {
+      moduloActual = modulo;
+      const secAgendas = document.getElementById('section-agendas');
+      const secConvocatorias = document.getElementById('section-convocatorias');
+      const txtTitulo = document.getElementById('txt-modulo-titulo');
+      const btnTxt = document.getElementById('btn-txt-nuevo');
+
+      if (modulo === 'agendas') {
+        secAgendas.classList.remove('hidden');
+        secConvocatorias.classList.add('hidden');
+        txtTitulo.textContent = 'Agendas de Concejo';
+        btnTxt.textContent = 'Registrar Nueva Agenda';
+        cargarAgendasBD();
+      } else {
+        secAgendas.classList.add('hidden');
+        secConvocatorias.classList.remove('hidden');
+        txtTitulo.textContent = 'Convocatorias de Concejo';
+        btnTxt.textContent = 'Registrar Convocatoria';
+        cargarConvocatoriasBD();
+      }
+    }
+
+    function recargarSeccionActual() {
+      if (moduloActual === 'agendas') cargarAgendasBD();
+      else cargarConvocatoriasBD();
+    }
+
+    function abrirModalGeneral() {
+      if (moduloActual === 'agendas') abrirModalAgenda();
+      else abrirModalConvocatoria();
+    }
+
+    async function cargarAgendasBD() {
+      const tbody = document.getElementById('tabla-agendas');
+      try {
+        const { data } = await supabaseClient.from('agendas').select('*').order('id', { ascending: true });
+        cacheAgendas = data || [];
+        renderAgendas(cacheAgendas);
+      } catch (err) { console.error(err); }
+    }
+
+    function renderAgendas(data) {
+      const tbody = document.getElementById('tabla-agendas');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${permitirEdicion ? 6 : 5}" class="py-8 text-center text-slate-500">No hay agendas registradas.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(a => {
+        const numAgenda = a.numero_acta || a.numero_agenda || '-';
+        const urlPdf = a.enlace_borrador || a.enlace_pdf || null;
+        let fechaFmt = a.fecha_sesion ? new Date(a.fecha_sesion + 'T00:00:00').toLocaleDateString('es-GT') : '-';
+
+        return `
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3.5 px-4 font-bold text-white">${numAgenda}</td>
+            <td class="py-3.5 px-4">${a.tipo_sesion || '-'}</td>
+            <td class="py-3.5 px-4 text-xs text-cyan-300 font-mono">${fechaFmt}</td>
+            <td class="py-3.5 px-4 text-center"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30">${a.estado_agenda || 'Convocada'}</span></td>
+            <td class="py-3.5 px-4 text-center">${urlPdf ? `<a href="${urlPdf}" target="_blank" class="bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-file-pdf mr-1"></i> Ver PDF</a>` : '<span class="text-slate-600 text-xs">Sin PDF</span>'}</td>
+            ${permitirEdicion ? `
+              <td class="py-3.5 px-4 text-center">
+                <div class="flex items-center justify-center space-x-1.5">
+                  <button onclick="abrirModalAgenda(${a.id})" class="p-2 bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-white rounded-xl transition"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                  <button onclick="eliminarAgenda(${a.id})" class="p-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                </div>
+              </td>
+            ` : ''}
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function cargarConvocatoriasBD() {
+      const tbody = document.getElementById('tabla-convocatorias');
+      try {
+        const { data } = await supabaseClient.from('convocatorias').select('*').order('id', { ascending: true });
+        cacheConvocatorias = data || [];
+        renderConvocatorias(cacheConvocatorias);
+      } catch (err) { console.error(err); }
+    }
+
+    function renderConvocatorias(data) {
+      const tbody = document.getElementById('tabla-convocatorias');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${permitirEdicion ? 4 : 3}" class="py-8 text-center text-slate-500">No hay convocatorias registradas.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(c => {
+        let fechaFmt = '-';
+        if (c.fecha_hora) {
+          const dt = new Date(c.fecha_hora);
+          fechaFmt = `${dt.toLocaleDateString('es-GT')} / ${dt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })} hrs`;
+        }
+
+        return `
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3.5 px-4 font-bold text-white">${c.numero_convocatoria || '-'}</td>
+            <td class="py-3.5 px-4 text-xs text-cyan-200 font-mono">${fechaFmt}</td>
+            <td class="py-3.5 px-4 text-center">
+              ${c.enlace_pdf ? `<a href="${c.enlace_pdf}" target="_blank" class="bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-file-pdf mr-1"></i> Ver PDF</a>` : '<span class="text-slate-600 text-xs">Sin PDF</span>'}
+            </td>
+            ${permitirEdicion ? `
+              <td class="py-3.5 px-4 text-center">
+                <div class="flex items-center justify-center space-x-1.5">
+                  <button onclick="abrirModalConvocatoria(${c.id})" class="p-2 bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-white rounded-xl transition"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                  <button onclick="eliminarConvocatoria(${c.id})" class="p-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                </div>
+              </td>
+            ` : ''}
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function abrirModalAgenda(id = null) { document.getElementById('modal-agenda').classList.remove('hidden'); }
+    function cerrarModalAgenda() { document.getElementById('modal-agenda').classList.add('hidden'); }
+    function abrirModalConvocatoria(id = null) { document.getElementById('modal-convocatoria').classList.remove('hidden'); }
+    function cerrarModalConvocatoria() { document.getElementById('modal-convocatoria').classList.add('hidden'); }
+
+    async function guardarAgenda(e) {
+      e.preventDefault();
+      const idEdit = document.getElementById('edit-agenda-id').value;
+      const file = document.getElementById('agenda-pdf').files[0];
+      let urlPdf = null;
+
+      try {
+        if (file) {
+          const nombreArchivo = `agenda_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+          await supabaseClient.storage.from('pdf-agendas').upload(nombreArchivo, file);
+          const { data: pubUrl } = supabaseClient.storage.from('pdf-agendas').getPublicUrl(nombreArchivo);
+          urlPdf = pubUrl.publicUrl;
+        }
+
+        const obj = {
+          numero_acta: document.getElementById('agenda-numero').value.trim(),
+          tipo_sesion: document.getElementById('agenda-tipo').value || null,
+          fecha_sesion: document.getElementById('agenda-fecha').value || null,
+          estado_agenda: document.getElementById('agenda-estado').value || 'Convocada'
+        };
+        if (urlPdf) obj.enlace_borrador = urlPdf;
+
+        if (idEdit) await supabaseClient.from('agendas').update(obj).eq('id', idEdit);
+        else await supabaseClient.from('agendas').insert([obj]);
+
+        cerrarModalAgenda();
+        cargarAgendasBD();
+      } catch (err) { alert('Error al guardar agenda.'); }
+    }
+
+    async function guardarConvocatoria(e) {
+      e.preventDefault();
+      const idEdit = document.getElementById('edit-convocatoria-id').value;
+      const file = document.getElementById('convocatoria-pdf').files[0];
+      let urlPdf = null;
+
+      try {
+        if (file) {
+          const nombreArchivo = `convocatoria_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+          await supabaseClient.storage.from('pdf-agendas').upload(nombreArchivo, file);
+          const { data: pubUrl } = supabaseClient.storage.from('pdf-agendas').getPublicUrl(nombreArchivo);
+          urlPdf = pubUrl.publicUrl;
+        }
+
+        const obj = {
+          numero_convocatoria: document.getElementById('convocatoria-numero').value.trim(),
+          fecha_hora: document.getElementById('convocatoria-fecha').value || null
+        };
+        if (urlPdf) obj.enlace_pdf = urlPdf;
+
+        if (idEdit) await supabaseClient.from('convocatorias').update(obj).eq('id', idEdit);
+        else await supabaseClient.from('convocatorias').insert([obj]);
+
+        cerrarModalConvocatoria();
+        cargarConvocatoriasBD();
+      } catch (err) { alert('Error al guardar convocatoria.'); }
+    }
+
+    async function eliminarAgenda(id) {
+      if (!confirm('¿Eliminar agenda?')) return;
+      await supabaseClient.from('agendas').delete().eq('id', id);
+      cargarAgendasBD();
+    }
+
+    async function eliminarConvocatoria(id) {
+      if (!confirm('¿Eliminar convocatoria?')) return;
+      await supabaseClient.from('convocatorias').delete().eq('id', id);
+      cargarConvocatoriasBD();
+    }
+  </script>
+</body>
+</html>
