@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Visual (Live CMS) - Administración</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <script>
+    const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub2pvdGRnZWdmbXd1ZWtzam1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDEwMjIsImV4cCI6MjEwNTA3NzAyMn0.cPd5_f3529iFvLWJDhkQ_KNanD6D_YLcZkU67MtHAds';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <script src="js/auth.js"></script>
+  <script src="js/sidebar.js"></script>
+
+  <style>
+    .bg-dashboard-custom {
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.90)), url('img/bg-login.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+    }
+  </style>
+</head>
+<body class="bg-dashboard-custom min-h-screen text-slate-100 font-sans antialiased flex flex-col">
+
+  <div id="sidebar-container"></div>
+
+  <div class="flex-1 flex flex-col min-h-screen w-full md:pl-28 transition-all duration-300">
+    <main class="p-4 sm:p-6 flex-1 space-y-4 max-w-[1600px] mx-auto w-full">
+      
+      <!-- CABECERA -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-700/60 shadow-2xl">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center">
+            <i class="fa-solid fa-vr-cardboard text-amber-400 mr-3"></i> Editor Visual (Live CMS)
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Previsualización y personalización en tiempo real de las páginas del sistema</p>
+        </div>
+
+        <button onclick="guardarTodosCambiosCMS()" class="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-extrabold rounded-xl shadow-lg transition flex items-center space-x-2 text-xs">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Publicar Cambios</span>
+        </button>
+      </div>
+
+      <!-- BARRA DE SELECCIÓN Y RESOLUCIÓN -->
+      <div class="bg-slate-900/90 backdrop-blur-xl p-3.5 rounded-2xl border border-slate-700/60 shadow-lg flex flex-col md:flex-row justify-between items-center gap-3 text-xs">
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <span class="font-bold text-amber-400"><i class="fa-solid fa-file-code mr-1"></i> Página:</span>
+          <select id="select-pagina-preview" onchange="cambiarPaginaPreview()" class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 font-semibold outline-none focus:ring-2 focus:ring-amber-500">
+            <option value="recursos-administrativos.html">recursos-administrativos.html</option>
+            <option value="expedientes.html">expedientes.html</option>
+            <option value="index.html">index.html</option>
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button onclick="cambiarVistaIframe('100%')" title="Vista Escritorio" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><i class="fa-solid fa-desktop"></i></button>
+          <button onclick="cambiarVistaIframe('768px')" title="Vista Tablet" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><i class="fa-solid fa-tablet-screen-button"></i></button>
+          <button onclick="cambiarVistaIframe('390px')" title="Vista Móvil" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"><i class="fa-solid fa-mobile-screen-button"></i></button>
+        </div>
+      </div>
+
+      <!-- PREVIEW + CONTROLES -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[75vh]">
+        <div class="lg:col-span-8 bg-slate-950/80 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center p-2 relative">
+          <iframe id="iframe-preview" src="recursos-administrativos.html" class="w-full h-full rounded-2xl border-0 transition-all duration-300"></iframe>
+        </div>
+
+        <div class="lg:col-span-4 bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-slate-700/60 p-5 shadow-2xl flex flex-col justify-between overflow-y-auto space-y-4">
+          <div>
+            <div class="border-b border-slate-800 pb-3 mb-4">
+              <h3 class="font-bold text-white text-sm flex items-center">
+                <i class="fa-solid fa-sliders text-amber-400 mr-2"></i> Propiedades de la Página
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Los cambios se reflejan al instante en la vista previa</p>
+            </div>
+
+            <div class="space-y-4 text-xs">
+              <div>
+                <label class="block text-slate-300 font-bold mb-1">Título Principal de la Sección</label>
+                <input type="text" id="ctrl-titulo" oninput="actualizarLive('cms-cabecera_titulo', this.value)" placeholder="Ej. Control de Recursos..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+
+              <div>
+                <label class="block text-slate-300 font-bold mb-1">Subtítulo / Descripción</label>
+                <textarea id="ctrl-subtitulo" rows="3" oninput="actualizarLive('cms-cabecera_subtitulo', this.value)" placeholder="Descripción de la cabecera..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+              </div>
+
+              <div class="pt-2 border-t border-slate-800 space-y-3">
+                <p class="font-bold text-amber-400 text-[11px]">Personalización Estética</p>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-medium">Color del Título</span>
+                  <input type="color" id="ctrl-color-titulo" value="#00ffff" onchange="actualizarLiveEstilos('cms-cabecera_titulo', { color: this.value })" class="bg-transparent w-8 h-8 cursor-pointer rounded">
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-medium">Mostrar Subtítulo</span>
+                  <input type="checkbox" id="ctrl-vis-subtitulo" checked onchange="actualizarLiveEstilos('cms-cabecera_subtitulo', { visible: this.checked })" class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-800">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-[10px] text-slate-400">
+            <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i> Presione "Publicar Cambios" para guardar los datos en Supabase.
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const userSesion = verificarSesion();
+    if (!userSesion || (userSesion.rol || '').toLowerCase() !== 'admin') {
+      alert('Acceso restringido: Se requieren permisos de Administrador.');
+      window.location.href = 'index.html';
+    }
+
+    let cambiosPendientes = {};
+
+    function cambiarPaginaPreview() {
+      const pag = document.getElementById('select-pagina-preview').value;
+      document.getElementById('iframe-preview').src = pag;
+    }
+
+    function cambiarVistaIframe(ancho) {
+      document.getElementById('iframe-preview').style.width = ancho;
+    }
+
+    function actualizarLive(selectorId, contenido) {
+      const iframe = document.getElementById('iframe-preview');
+      if (!cambiosPendientes[selectorId]) cambiosPendientes[selectorId] = {};
+      cambiosPendientes[selectorId].contenido = contenido;
+
+      iframe.contentWindow.postMessage({ type: 'CMS_LIVE_UPDATE', selectorId, contenido }, '*');
+    }
+
+    function actualizarLiveEstilos(selectorId, estilos) {
+      const iframe = document.getElementById('iframe-preview');
+      if (!cambiosPendientes[selectorId]) cambiosPendientes[selectorId] = {};
+      cambiosPendientes[selectorId].estilos = { ...cambiosPendientes[selectorId].estilos, ...estilos };
+
+      iframe.contentWindow.postMessage({ type: 'CMS_LIVE_UPDATE', selectorId, estilos }, '*');
+    }
+
+    async function guardarTodosCambiosCMS() {
+      const pagina = document.getElementById('select-pagina-preview').value;
+
+      try {
+        const registros = Object.keys(cambiosPendientes).map(selector_id => ({
+          pagina,
+          selector_id,
+          etiqueta: selector_id,
+          contenido: cambiosPendientes[selector_id].contenido || '',
+          estilos: cambiosPendientes[selector_id].estilos || {}
+        }));
+
+        if (registros.length === 0) {
+          alert('No hay cambios pendientes para guardar.');
+          return;
+        }
+
+        const { error } = await supabaseClient
+          .from('cms_elementos_pagina')
+          .upsert(registros, { onConflict: 'pagina,selector_id' });
+
+        if (error) throw error;
+
+        alert('¡Cambios publicados exitosamente!');
+        cambiosPendientes = {};
+
+      } catch (err) {
+        console.error(err);
+        alert('Error al guardar en Supabase: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

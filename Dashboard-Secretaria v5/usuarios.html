@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Usuarios - Secretaría Municipal</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <script>
+    const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub2pvdGRnZWdmbXd1ZWtzam1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDEwMjIsImV4cCI6MjEwNTA3NzAyMn0.cPd5_f3529iFvLWJDhkQ_KNanD6D_YLcZkU67MtHAds';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <script src="js/auth.js"></script>
+  <script src="js/sidebar.js"></script>
+
+  <style>
+    .bg-dashboard-custom {
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.90)), url('img/bg-login.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+    }
+  </style>
+</head>
+<body class="bg-dashboard-custom min-h-screen text-slate-100 font-sans antialiased flex flex-col">
+
+  <div id="sidebar-container"></div>
+
+  <!-- CONTENEDOR AJUSTADO A md:pl-28 PARA ACTIVACIÓN DEL MOUSE -->
+  <div class="flex-1 flex flex-col min-h-screen w-full md:pl-28 transition-all duration-300">
+    <main class="p-4 sm:p-8 flex-1 space-y-6 max-w-7xl mx-auto w-full">
+      
+      <!-- CABECERA DE GESTIÓN -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.15)]">
+        <div>
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 text-[10px] font-mono mb-1">
+            <i class="fa-solid fa-user-shield"></i> <span>Módulo de Administración General</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center">
+            <i class="fa-solid fa-users text-amber-400 mr-3 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"></i> Gestión de Cuentas de Usuario
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Control centralizado de accesos, credenciales, puestos e historial de estado</p>
+        </div>
+
+        <button onclick="abrirModalUsuario()" class="px-5 py-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-extrabold rounded-2xl shadow-lg transition flex items-center space-x-2 text-xs shadow-amber-900/40">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Crear Nuevo Usuario</span>
+        </button>
+      </div>
+
+      <!-- TABLA DE USUARIOS DEL SISTEMA -->
+      <div class="bg-slate-900/70 backdrop-blur-xl rounded-3xl border border-slate-700/60 p-6 shadow-2xl space-y-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950/80 text-xs text-amber-400/90 uppercase font-bold border-b border-slate-800">
+              <tr>
+                <th class="py-3.5 px-4">Usuario</th>
+                <th class="py-3.5 px-4">Nombre Completo</th>
+                <th class="py-3.5 px-4">Puesto</th>
+                <th class="py-3.5 px-4 text-center">Rol Asignado</th>
+                <th class="py-3.5 px-4 text-center">Estado</th>
+                <th class="py-3.5 px-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-usuarios" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">
+                  <i class="fa-solid fa-circle-notch animate-spin text-2xl text-amber-400 mb-2"></i>
+                  <p>Cargando cuentas de usuario...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-xs text-slate-500 border-t border-slate-800/80">
+      &copy; 2026 Municipalidad de Quetzaltenango &bull; Secretaría Municipal &bull; Panel de Administración
+    </footer>
+  </div>
+
+  <!-- MODAL EDITAR / CREAR USUARIO -->
+  <div id="modal-usuario" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 id="modal-usuario-titulo" class="text-base font-bold text-white flex items-center">
+          <i class="fa-solid fa-user-gear text-amber-400 mr-2"></i> Registrar Usuario
+        </h3>
+        <button onclick="cerrarModalUsuario()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form onsubmit="guardarUsuario(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="edit-usuario-id">
+        
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nombre de Usuario (Login) *</label>
+          <input type="text" id="user-usuario" required placeholder="Ej. claudia.lopez" class="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nombre Completo *</label>
+          <input type="text" id="user-nombre" required placeholder="Nombre y apellidos" class="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Puesto o Cargo *</label>
+          <input type="text" id="user-puesto" required placeholder="Ej. Asistente Jurídico" class="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Rol en el Sistema *</label>
+          <select id="user-rol" required class="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-amber-500 font-bold text-amber-300 uppercase">
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Contraseña</label>
+          <input type="password" id="user-password" placeholder="Dejar en blanco para mantener la actual" class="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-white outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-4 border-t border-slate-800">
+          <button type="button" onclick="cerrarModalUsuario()" class="px-4 py-2.5 bg-slate-800 text-slate-300 rounded-2xl font-bold hover:bg-slate-700 transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl font-extrabold shadow-lg transition">Guardar Cuenta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const userSesion = verificarSesion();
+    if (!userSesion || (userSesion.rol || '').toLowerCase() !== 'admin') {
+      alert('Acceso restringido: Se requieren permisos de Administrador.');
+      window.location.href = 'index.html';
+    }
+
+    let cacheUsuarios = [];
+    cargarUsuarios();
+    cargarSelectRoles();
+
+    async function cargarUsuarios() {
+      try {
+        const { data, error } = await supabaseClient.from('usuarios').select('*').order('id', { ascending: true });
+        if (error) throw error;
+
+        cacheUsuarios = data || [];
+        const tbody = document.getElementById('tabla-usuarios');
+        
+        if (cacheUsuarios.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No se encontraron usuarios registrados.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = cacheUsuarios.map(u => `
+          <tr class="hover:bg-slate-800/40 transition group">
+            <td class="py-3.5 px-4 font-bold font-mono text-amber-300">${u.usuario}</td>
+            <td class="py-3.5 px-4 font-semibold text-white">${u.nombre_completo}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-400">${u.puesto || 'No especificado'}</td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 text-amber-300 border-amber-500/30 uppercase">
+                ${u.rol}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              ${u.estado === 'activo' || u.estado !== 'inactivo' 
+                ? '<span class="text-emerald-400 font-bold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Activo</span>' 
+                : '<span class="text-rose-400 font-bold text-xs"><i class="fa-solid fa-circle-xmark mr-1"></i> Inactivo</span>'}
+            </td>
+            <td class="py-3.5 px-4 text-center">
+              <button onclick="abrirModalUsuario(${u.id})" title="Editar Usuario" class="p-2 bg-amber-500/10 text-amber-300 hover:bg-amber-600 hover:text-white rounded-xl transition border border-amber-500/30">
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('tabla-usuarios').innerHTML = `
+          <tr><td colspan="6" class="py-8 text-center text-rose-400 font-semibold">Error al cargar usuarios desde la base de datos.</td></tr>`;
+      }
+    }
+
+    async function cargarSelectRoles() {
+      try {
+        const { data } = await supabaseClient.from('roles').select('nombre');
+        const select = document.getElementById('user-rol');
+        select.innerHTML = (data || []).map(r => `<option value="${r.nombre}">${r.nombre.toUpperCase()}</option>`).join('');
+      } catch (err) {
+        console.error('Error al cargar catálogo de roles:', err);
+      }
+    }
+
+    function abrirModalUsuario(id = null) {
+      document.getElementById('modal-usuario').classList.remove('hidden');
+      if (id) {
+        document.getElementById('modal-usuario-titulo').innerHTML = '<i class="fa-solid fa-user-pen text-amber-400 mr-2"></i> Editar Cuenta de Usuario';
+        const u = cacheUsuarios.find(item => item.id === id);
+        if (u) {
+          document.getElementById('edit-usuario-id').value = u.id;
+          document.getElementById('user-usuario').value = u.usuario;
+          document.getElementById('user-nombre').value = u.nombre_completo;
+          document.getElementById('user-puesto').value = u.puesto || '';
+          document.getElementById('user-rol').value = u.rol;
+        }
+      } else {
+        document.getElementById('modal-usuario-titulo').innerHTML = '<i class="fa-solid fa-user-gear text-amber-400 mr-2"></i> Registrar Usuario';
+        document.getElementById('edit-usuario-id').value = '';
+        document.getElementById('user-usuario').value = '';
+        document.getElementById('user-nombre').value = '';
+        document.getElementById('user-puesto').value = '';
+      }
+    }
+
+    function cerrarModalUsuario() { 
+      document.getElementById('modal-usuario').classList.add('hidden'); 
+    }
+
+    async function guardarUsuario(e) {
+      e.preventDefault();
+      const idEdit = document.getElementById('edit-usuario-id').value;
+      const pass = document.getElementById('user-password').value;
+
+      const obj = {
+        usuario: document.getElementById('user-usuario').value.trim(),
+        nombre_completo: document.getElementById('user-nombre').value.trim(),
+        puesto: document.getElementById('user-puesto').value.trim(),
+        rol: document.getElementById('user-rol').value,
+        estado: 'activo'
+      };
+      if (pass) obj.password_hash = pass;
+
+      try {
+        if (idEdit) {
+          const { error } = await supabaseClient.from('usuarios').update(obj).eq('id', idEdit);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient.from('usuarios').insert([obj]);
+          if (error) throw error;
+        }
+        
+        cerrarModalUsuario();
+        await cargarUsuarios();
+      } catch (err) { 
+        console.error(err);
+        alert('Error al guardar datos de usuario: ' + (err.message || 'Error de conexión')); 
+      }
+    }
+  </script>
+</body>
+</html>
