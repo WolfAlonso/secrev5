@@ -206,7 +206,6 @@
   </div>
 
   <script>
-    // VERIFICACIÓN INMEDIATA DE SEGURIDAD
     const userSesion = verificarSesion();
     if (!userSesion || !tienePermisoLectura('acuerdoscon')) {
       alert('Acceso restringido: No cuenta con permisos para consultar este módulo.');
@@ -461,9 +460,7 @@
       boxResumen.classList.add('hidden');
 
       try {
-        const { data, error } = await supabaseClient.from('historial_estados_acuerdos_concejo')
-          .select('*').eq('acuerdo_id', id).order('id', { ascending: true });
-
+        const { data, error } = await supabaseClient.from('historial_estados_acuerdos_concejo').select('*').eq('acuerdo_id', id).order('id', { ascending: true });
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -490,7 +487,6 @@
             const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
             const diffDias = Math.floor(diffHoras / 24);
             const hrsRestantes = diffHoras % 24;
-
             duracionStr = diffDias > 0 ? `Duración: <b>${diffDias} días y ${hrsRestantes} hrs</b>` : `Duración: <b>${diffHoras} hrs</b>`;
           } else if (item.estado_nuevo === 'Notificado') {
             duracionStr = '<span class="text-emerald-400 font-bold"><i class="fa-solid fa-check-double mr-1"></i> Trámite concluido</span>';
@@ -508,8 +504,7 @@
                 ${item.detalle ? `<p class="text-[10px] text-slate-400 italic mb-1">${item.detalle}</p>` : ''}
                 <p class="text-[10px] text-slate-500">Registrado por: <span class="text-slate-300 font-semibold">${item.usuario}</span></p>
               </div>
-            </div>
-          `;
+            </div>`;
         }
 
         if (fechaFinNotificado) {
@@ -517,7 +512,6 @@
           const totalHoras = Math.floor(totalMs / (1000 * 60 * 60));
           const totalDias = Math.floor(totalHoras / 24);
           const hrsRestantes = totalHoras % 24;
-
           txtDuracion.innerHTML = `El proceso completo desde el registro hasta la notificación final tomó un total de <b>${totalDias} días y ${hrsRestantes} horas</b>.`;
           boxResumen.classList.remove('hidden');
         }
@@ -551,12 +545,7 @@
 
     async function obtenerHistorialParaPDF(acuerdoId) {
       try {
-        const { data, error } = await supabaseClient
-          .from('historial_estados_acuerdos_concejo')
-          .select('*')
-          .eq('acuerdo_id', acuerdoId)
-          .order('id', { ascending: true });
-
+        const { data, error } = await supabaseClient.from('historial_estados_acuerdos_concejo').select('*').eq('acuerdo_id', acuerdoId).order('id', { ascending: true });
         if (error || !data) return [];
         return data;
       } catch (e) {
@@ -564,24 +553,63 @@
       }
     }
 
+    async function obtenerLogoOficialRutaFija() {
+      try {
+        const respuesta = await fetch('img/logo.png');
+        if (!respuesta.ok) throw new Error();
+        const blob = await respuesta.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function obtenerNombreCompletoUsuario(username) {
+      if (!username) return 'Oficial de Secretaría Municipal';
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('nombre_completo').eq('usuario', username).single();
+        if (data && data.nombre_completo) return data.nombre_completo;
+      } catch (e) {}
+      return username;
+    }
+
     async function generarPDFIndividual(item) {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+      const doc = new jsPDF('portrait');
+      const logoPNG = await obtenerLogoOficialRutaFija();
+      const nombreGenerador = await obtenerNombreCompletoUsuario(userSesion.usuario);
 
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 297, 'F');
+      if (logoPNG) {
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.07 }));
+        doc.addImage(logoPNG, 'PNG', 35, 80, 140, 140);
+        doc.restoreGraphicsState();
+        doc.addImage(logoPNG, 'PNG', 12, 8, 18, 18);
+      }
 
-      doc.setTextColor(6, 182, 212);
+      doc.setTextColor(15, 23, 42);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 105, 18, null, null, 'center');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text('SECRETARÍA MUNICIPAL - REPORTE DE ACUERDO DE CONCEJO Y AUDITORÍA', 105, 25, null, null, 'center');
+      doc.setFontSize(12);
+      doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 33, 14);
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      doc.text('SECRETARÍA MUNICIPAL — ACUERDOS DE CONCEJO', 33, 19);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('REPORTE DE ACUERDO DE CONCEJO Y AUDITORÍA', 33, 24);
+
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.5);
+      doc.line(12, 28, 198, 28);
 
       doc.autoTable({
-        startY: 33,
+        startY: 34,
         head: [['DATOS DEL ACUERDO DE CONCEJO', 'INFORMACIÓN REGISTRADA']],
         body: [
           ['No. Acuerdo de Concejo', item.numero_acuerdo || '-'],
@@ -593,8 +621,9 @@
           ['Notificación Total', item.notificado_totalidad ? 'SÍ (CONCLUIDO)' : 'PENDIENTE']
         ],
         theme: 'grid',
-        headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fillColor: [30, 41, 59], textColor: [241, 245, 249], fontSize: 9 }
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fillColor: [255, 255, 255], textColor: [15, 23, 42], fontSize: 8 },
+        margin: { left: 12, right: 12 }
       });
 
       const historial = await obtenerHistorialParaPDF(item.id);
@@ -618,24 +647,35 @@
             duracionStr = 'Concluido';
           }
 
-          auditoriaRows.push([h.estado_nuevo || '-', fechaFmt, duracionStr, h.usuario || '-', h.detalle || '-']);
+          const nombreUsuarioCompleto = await obtenerNombreCompletoUsuario(h.usuario);
+          auditoriaRows.push([h.estado_nuevo || '-', fechaFmt, duracionStr, nombreUsuarioCompleto, h.detalle || '-']);
         }
       } else {
         auditoriaRows.push(['Sin registros de auditoría', '-', '-', '-', '-']);
       }
 
-      doc.setTextColor(251, 191, 36);
-      doc.setFontSize(11);
-      doc.text('REGISTRO DE AUDITORÍA Y TRAZABILIDAD DE TIEMPOS', 14, doc.lastAutoTable.finalY + 12);
-
       doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 16,
-        head: [['Fase / Estado', 'Fecha y Hora', 'Duración Fase', 'Usuario', 'Detalle de Acción']],
+        startY: doc.lastAutoTable.finalY + 4,
+        head: [['Fase / Estado', 'Fecha y Hora', 'Duración', 'Responsable (Nombre Completo)', 'Detalle de Acción']],
         body: auditoriaRows,
         theme: 'grid',
-        headStyles: { fillColor: [245, 158, 11], textColor: [15, 23, 42], fontStyle: 'bold' },
-        styles: { fillColor: [30, 41, 59], textColor: [241, 245, 249], fontSize: 8 }
+        headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fillColor: [255, 255, 255], textColor: [30, 41, 59], fontSize: 7 },
+        margin: { left: 12, right: 12 }
       });
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      const fechaImpresion = new Date().toLocaleString('es-GT', { dateStyle: 'long', timeStyle: 'short' });
+      for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.line(12, 282, 198, 282);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generado por: ${nombreGenerador} | Emisión: ${fechaImpresion}`, 12, 287);
+        doc.text(`Página ${i} de ${totalPaginas}`, 198, 287, { align: 'right' });
+      }
 
       doc.save(`Acuerdo_Concejo_${item.numero_acuerdo || item.id}_Auditoria.pdf`);
     }
@@ -652,29 +692,17 @@
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF('portrait');
+      const logoPNG = await obtenerLogoOficialRutaFija();
+      const nombreGenerador = await obtenerNombreCompletoUsuario(userSesion.usuario);
 
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 297, 'F');
-
-      doc.setTextColor(6, 182, 212);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 105, 18, null, null, 'center');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text('REPORTE CONSOLIDADO DE ACUERDOS DE CONCEJO CON AUDITORÍA', 105, 25, null, null, 'center');
-
-      let currentY = 32;
+      let currentY = 36;
 
       for (let idx = 0; idx < seleccionados.length; idx++) {
         const item = seleccionados[idx];
 
-        if (currentY > 230) {
+        if (currentY > 210) {
           doc.addPage();
-          doc.setFillColor(15, 23, 42);
-          doc.rect(0, 0, 210, 297, 'F');
-          currentY = 20;
+          currentY = 36;
         }
 
         doc.autoTable({
@@ -688,8 +716,9 @@
             ['Notificación Total', item.notificado_totalidad ? 'SÍ (CONCLUIDO)' : 'PENDIENTE']
           ],
           theme: 'grid',
-          headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], fontStyle: 'bold' },
-          styles: { fillColor: [30, 41, 59], textColor: [241, 245, 249], fontSize: 8 }
+          headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [15, 23, 42], fontSize: 8 },
+          margin: { left: 12, right: 12 }
         });
 
         const historial = await obtenerHistorialParaPDF(item.id);
@@ -713,7 +742,8 @@
               duracionStr = 'Concluido';
             }
 
-            auditoriaRows.push([h.estado_nuevo || '-', fechaFmt, duracionStr, h.usuario || '-', h.detalle || '-']);
+            const nombreUsuarioCompleto = await obtenerNombreCompletoUsuario(h.usuario);
+            auditoriaRows.push([h.estado_nuevo || '-', fechaFmt, duracionStr, nombreUsuarioCompleto, h.detalle || '-']);
           }
         } else {
           auditoriaRows.push(['Sin registros de auditoría', '-', '-', '-', '-']);
@@ -721,17 +751,60 @@
 
         doc.autoTable({
           startY: doc.lastAutoTable.finalY + 2,
-          head: [['Fase', 'Fecha/Hora', 'Duración', 'Usuario', 'Detalle']],
+          head: [['Fase', 'Fecha/Hora', 'Duración', 'Responsable (Nombre Completo)', 'Detalle']],
           body: auditoriaRows,
           theme: 'grid',
-          headStyles: { fillColor: [245, 158, 11], textColor: [15, 23, 42], fontStyle: 'bold' },
-          styles: { fillColor: [15, 23, 42], textColor: [226, 232, 240], fontSize: 7 }
+          headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [30, 41, 59], fontSize: 7 },
+          margin: { left: 12, right: 12 }
         });
 
-        currentY = doc.lastAutoTable.finalY + 12;
+        currentY = doc.lastAutoTable.finalY + 10;
       }
 
-      doc.save('Reporte_Acuerdos_Concejo_Con_Auditoria.pdf');
+      const totalPaginas = doc.internal.getNumberOfPages();
+      const fechaImpresion = new Date().toLocaleString('es-GT', { dateStyle: 'long', timeStyle: 'short' });
+
+      for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+
+        if (logoPNG) {
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: 0.07 }));
+          doc.addImage(logoPNG, 'PNG', 35, 80, 140, 140);
+          doc.restoreGraphicsState();
+          doc.addImage(logoPNG, 'PNG', 12, 8, 18, 18);
+        }
+
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 33, 14);
+
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        doc.text('SECRETARÍA MUNICIPAL — ACUERDOS DE CONCEJO', 33, 19);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text('REPORTE CONSOLIDADO DE ACUERDOS DE CONCEJO CON AUDITORÍA', 33, 24);
+
+        doc.setDrawColor(15, 23, 42);
+        doc.setLineWidth(0.5);
+        doc.line(12, 28, 198, 28);
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.line(12, 282, 198, 282);
+
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generado por: ${nombreGenerador} | Emisión: ${fechaImpresion}`, 12, 287);
+        doc.text(`Página ${i} de ${totalPaginas}`, 198, 287, { align: 'right' });
+      }
+
+      doc.save(`Reporte_Acuerdos_Concejo_${Date.now()}.pdf`);
     }
   </script>
 </body>

@@ -58,10 +58,10 @@ function renderizarSidebar() {
   const esRecursos = path.includes('recursos-administrativos.html');
   const esArchivos = path.includes('archivos.html');
   
-  const esCms = path.includes('live-cms.html');
+  // Módulos de Administración
   const esUsuarios = path.includes('usuarios.html');
   const esRoles = path.includes('roles.html');
-  const esAdminGroup = esCms || esUsuarios || esRoles;
+  const esAdminGroup = esUsuarios || esRoles;
 
   const esConvocatorias = esAgendas && search.includes('vista=convocatorias');
   const esAgendasConcejo = esAgendas && !esConvocatorias;
@@ -85,12 +85,12 @@ function renderizarSidebar() {
 
     <div id="sidebar-overlay" onclick="toggleSidebarMovil()" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden md:hidden"></div>
 
-    <!-- ÁREA SENSIBLE DE CAPTURA EN EL BORDE IZQUIERDO -->
+    <!-- ÁREA SENSIBLE EN BORDE IZQUIERDO -->
     <div id="sidebar-trigger" class="fixed left-0 top-0 bottom-0 w-5 z-50 cursor-pointer flex items-center justify-start group">
       <div class="w-2.5 h-20 bg-cyan-500/40 border border-cyan-400/80 rounded-r-full shadow-[0_0_15px_rgba(6,182,212,0.6)] group-hover:bg-amber-400/80 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.8)] transition-all"></div>
     </div>
 
-    <!-- SIDEBAR PRINCIPAL (Oculto completamente a -120%) -->
+    <!-- SIDEBAR PRINCIPAL -->
     <aside id="sidebar-main" style="transform: translateX(-120%);" class="fixed left-4 top-4 bottom-4 w-72 bg-slate-950/95 border border-slate-800/80 backdrop-blur-2xl rounded-3xl z-50 flex flex-col justify-between p-4 shadow-[0_0_40px_rgba(6,182,212,0.25)] transition-transform duration-300 ease-in-out">
       
       <div class="space-y-4 overflow-y-auto pr-1">
@@ -199,7 +199,6 @@ function renderizarSidebar() {
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform ${esAdminGroup ? 'rotate-180' : ''}" id="arrow-sub-admin"></i>
               </button>
               <div id="sub-admin" class="${esAdminGroup ? '' : 'hidden'} pl-8 space-y-1 text-[11px] pt-1">
-                <a href="live-cms.html" class="block py-1.5 px-3 rounded-xl transition ${esCms ? 'text-amber-300 font-extrabold bg-amber-500/20 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]' : 'text-slate-400 hover:text-amber-200 hover:bg-amber-500/10'}">Editor Visual (Live CMS)</a>
                 <a href="usuarios.html" class="block py-1.5 px-3 rounded-xl transition ${esUsuarios ? 'text-amber-300 font-extrabold bg-amber-500/20 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]' : 'text-slate-400 hover:text-amber-200 hover:bg-amber-500/10'}">Gestión de Usuarios</a>
                 <a href="roles.html" class="block py-1.5 px-3 rounded-xl transition ${esRoles ? 'text-amber-300 font-extrabold bg-amber-500/20 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]' : 'text-slate-400 hover:text-amber-200 hover:bg-amber-500/10'}">Roles y Permisos</a>
               </div>
@@ -231,12 +230,10 @@ function renderizarSidebar() {
   const sidebar = document.getElementById('sidebar-main');
 
   if (trigger && sidebar) {
-    // Al pasar el mouse por la pestaña sensible, aparece suavemente
     trigger.addEventListener('mouseenter', () => {
       sidebar.style.transform = 'translateX(0)';
     });
 
-    // Al salir del menú, se oculta completamente fuera de la pantalla (-120%)
     sidebar.addEventListener('mouseleave', () => {
       sidebar.style.transform = 'translateX(-120%)';
     });

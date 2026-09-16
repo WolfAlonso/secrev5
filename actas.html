@@ -8,10 +8,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- LIBRERÍAS DE GENERACIÓN PDF VECTORIAL -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
+
   <!-- CONFIGURACIÓN DE SUPABASE -->
   <script>
     const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
@@ -33,15 +38,11 @@
 </head>
 <body class="bg-dashboard-custom min-h-screen text-slate-100 font-sans antialiased flex flex-col" onclick="cerrarMenuFlotante(event)">
 
-  <!-- CONTENEDOR DINÁMICO DE SIDEBAR FLOTANTE -->
   <div id="sidebar-container"></div>
 
-  <!-- CONTENIDO PRINCIPAL -->
   <div class="flex-1 flex flex-col min-h-screen w-full">
     <header class="md:hidden bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-30">
-      <div class="flex items-center space-x-3">
-        <span class="font-bold text-sm text-white pl-8">Actas de Concejo</span>
-      </div>
+      <span class="font-bold text-sm text-white pl-8">Actas de Concejo</span>
       <button onclick="cargarActasBD()" class="p-2 text-cyan-400 hover:text-white bg-slate-800 rounded-xl text-xs"><i class="fa-solid fa-rotate"></i></button>
     </header>
 
@@ -53,17 +54,25 @@
           </h2>
           <p class="text-xs text-slate-400 mt-1">Control de numeración, tipo de sesión, estados, auditoría de tiempos y PDF</p>
         </div>
-        <button id="btn-nueva-acta" onclick="abrirModalActa()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-5 py-2.5 rounded-2xl font-bold transition flex items-center shadow-lg shadow-cyan-900/40 hidden">
-          <i class="fa-solid fa-plus mr-1.5"></i> Registrar Acta
-        </button>
+        <div class="flex items-center space-x-3">
+          <button onclick="generarReporteActasSeleccionadasPDF()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold rounded-2xl shadow transition flex items-center space-x-2 text-xs">
+            <i class="fa-solid fa-file-pdf text-amber-400"></i>
+            <span>Exportar Auditoría Seleccionada</span>
+          </button>
+          <button id="btn-nueva-acta" onclick="abrirModalActa()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-5 py-2.5 rounded-2xl font-bold transition flex items-center shadow-lg shadow-cyan-900/40 hidden">
+            <i class="fa-solid fa-plus mr-1.5"></i> Registrar Acta
+          </button>
+        </div>
       </div>
 
-      <!-- TABLA DE ACTAS -->
       <div class="bg-slate-800/60 backdrop-blur-md rounded-3xl border border-slate-700/50 p-6 shadow-2xl space-y-4">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/60 text-xs text-slate-400 uppercase font-bold border-b border-slate-700/60">
               <tr>
+                <th class="py-3.5 px-3 text-center w-10">
+                  <input type="checkbox" id="check-seleccionar-todos" onchange="toggleSeleccionarTodos(this)" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500">
+                </th>
                 <th class="py-3.5 px-4">No. Acta</th>
                 <th class="py-3.5 px-4">Tipo de Sesión</th>
                 <th class="py-3.5 px-4">Fecha y Hora</th>
@@ -74,7 +83,7 @@
               </tr>
             </thead>
             <tbody id="tabla-actas" class="divide-y divide-slate-700/40">
-              <tr><td colspan="7" class="py-8 text-center text-slate-500 font-medium">Cargando actas desde la base de datos...</td></tr>
+              <tr><td colspan="8" class="py-8 text-center text-slate-500 font-medium">Cargando actas desde la base de datos...</td></tr>
             </tbody>
           </table>
         </div>
@@ -86,7 +95,6 @@
     </footer>
   </div>
 
-  <!-- MENÚ FLOTANTE GLOBAL DE OPCIONES -->
   <div id="menu-flotante-opciones" class="fixed z-50 bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl shadow-2xl p-2 hidden flex-col space-y-1 w-56 text-xs transition-all">
     <button onclick="ejecutarAcciónFlotante('auditoria')" class="w-full px-3 py-2 rounded-xl text-amber-300 hover:bg-amber-500/20 transition flex items-center font-semibold">
       <i class="fa-solid fa-clock-rotate-left mr-2.5 text-amber-400"></i> Auditoría de Tiempos
@@ -192,7 +200,6 @@
   </div>
 
   <script>
-    // VERIFICACIÓN INMEDIATA DE SEGURIDAD
     const userSesion = verificarSesion();
     if (!userSesion || !tienePermisoLectura('actas')) {
       alert('Acceso restringido: No cuenta con permisos para consultar este módulo.');
@@ -209,6 +216,10 @@
       document.getElementById('opciones-edicion-flotante').classList.add('hidden');
     }
     cargarActasBD();
+
+    function toggleSeleccionarTodos(masterCheck) {
+      document.querySelectorAll('.check-acta').forEach(chk => chk.checked = masterCheck.checked);
+    }
 
     function abrirModalActa(id = null) {
       document.getElementById('modal-acta').classList.remove('hidden');
@@ -315,21 +326,19 @@
       const tbody = document.getElementById('tabla-actas');
       try {
         const { data, error } = await supabaseClient.from('actas_concejo').select('*').order('id', { ascending: true });
-        
         if (error) throw error;
-
         cacheActas = data || [];
         renderActas(cacheActas);
       } catch (err) { 
         console.error('Error al cargar actas:', err); 
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-rose-400 font-medium"><i class="fa-solid fa-circle-exclamation mr-2"></i> Error al conectar con la base de datos de actas.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-rose-400 font-medium"><i class="fa-solid fa-circle-exclamation mr-2"></i> Error al conectar con la base de datos de actas.</td></tr>`;
       }
     }
 
     function renderActas(data) {
       const tbody = document.getElementById('tabla-actas');
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 font-medium">No hay actas registradas en la base de datos.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500 font-medium">No hay actas registradas en la base de datos.</td></tr>`;
         return;
       }
 
@@ -348,6 +357,9 @@
 
         return `
           <tr class="hover:bg-white/5 transition">
+            <td class="py-3.5 px-3 text-center">
+              <input type="checkbox" value="${a.id}" class="check-acta w-4 h-4 rounded bg-slate-900 border-slate-700 text-cyan-500">
+            </td>
             <td class="py-3.5 px-4 font-bold text-white">${a.numero_acta || '-'}</td>
             <td class="py-3.5 px-4">${a.tipo_sesion || '<span class="text-slate-500">Pendiente</span>'}</td>
             <td class="py-3.5 px-4 text-xs text-cyan-200 capitalize">${fechaFmt}</td>
@@ -407,7 +419,6 @@
               detalle: `Cambio de estado a ${nuevoEstado}`
             }]);
           }
-
           alert('¡Acta modificada con éxito!');
         } else {
           const { data: creada, error } = await supabaseClient.from('actas_concejo').insert([obj]).select().single();
@@ -420,7 +431,6 @@
             usuario: userSesion.usuario,
             detalle: 'Apertura de registro de acta'
           }]);
-
           alert('¡Acta registrada con éxito!');
         }
 
@@ -444,11 +454,7 @@
       boxResumen.classList.add('hidden');
 
       try {
-        const { data, error } = await supabaseClient.from('historial_estados_acta')
-          .select('*')
-          .eq('acta_id', actaId)
-          .order('id', { ascending: true });
-
+        const { data, error } = await supabaseClient.from('historial_estados_acta').select('*').eq('acta_id', actaId).order('id', { ascending: true });
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -475,7 +481,6 @@
             const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
             const diffDias = Math.floor(diffHoras / 24);
             const horasRestantes = diffHoras % 24;
-
             duracionStr = diffDias > 0 ? `Duración: <b>${diffDias} días y ${horasRestantes} horas</b>` : `Duración: <b>${diffHoras} horas</b>`;
           } else if (item.estado_nuevo === 'Aprobada') {
             duracionStr = '<span class="text-emerald-400 font-bold"><i class="fa-solid fa-check-double mr-1"></i> Proceso completado</span>';
@@ -493,8 +498,7 @@
                 ${item.detalle ? `<p class="text-[10px] text-slate-400 italic mb-1">${item.detalle}</p>` : ''}
                 <p class="text-[10px] text-slate-500">Registrado por: <span class="text-slate-300 font-semibold">${item.usuario}</span></p>
               </div>
-            </div>
-          `;
+            </div>`;
         }
 
         if (fechaFinAprobada) {
@@ -502,14 +506,12 @@
           const totalHoras = Math.floor(totalMs / (1000 * 60 * 60));
           const totalDias = Math.floor(totalHoras / 24);
           const hrsRestantes = totalHoras % 24;
-
           txtDuracion.innerHTML = `El trámite completo desde la creación inicial hasta la aprobación final tomó un total de <b>${totalDias} días y ${hrsRestantes} horas</b>.`;
           boxResumen.classList.remove('hidden');
         }
 
         htmlHistorial += '</div>';
         cont.innerHTML = htmlHistorial;
-
       } catch (e) {
         console.error(e);
         cont.innerHTML = '<p class="text-xs text-rose-400 text-center py-6">Error al consultar la auditoría.</p>';
@@ -529,6 +531,147 @@
         console.error(err);
         alert('No se pudo eliminar el acta.');
       }
+    }
+
+    // CARGAR LOGO OFICIAL CON RUTA FIJA / FETCH
+    async function obtenerLogoOficialRutaFija() {
+      try {
+        const respuesta = await fetch('img/logo.png');
+        if (!respuesta.ok) throw new Error();
+        const blob = await respuesta.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function obtenerNombreCompletoUsuario(username) {
+      if (!username) return 'Oficial de Secretaría Municipal';
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('nombre_completo').eq('usuario', username).single();
+        if (data && data.nombre_completo) return data.nombre_completo;
+      } catch (e) {}
+      return username;
+    }
+
+    // GENERAR REPORTE COMPLETO EN PDF (CON MARCA DE AGUA, LOGO Y NOMBRE COMPLETO)
+    async function generarReporteActasSeleccionadasPDF() {
+      const seleccionados = Array.from(document.querySelectorAll('.check-acta:checked')).map(cb => Number(cb.value));
+
+      if (seleccionados.length === 0) {
+        alert('Por favor selecciona al menos un acta con las casillas de verificación para exportar el reporte de auditoría.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('portrait');
+      const logoPNG = await obtenerLogoOficialRutaFija();
+      const nombreGenerador = await obtenerNombreCompletoUsuario(userSesion.usuario);
+
+      let currentY = 36;
+
+      for (let idx = 0; idx < seleccionados.length; idx++) {
+        const idActa = seleccionados[idx];
+        const acta = cacheActas.find(a => Number(a.id) === idActa);
+
+        if (idx > 0 && currentY > 210) {
+          doc.addPage();
+          currentY = 36;
+        }
+
+        doc.autoTable({
+          startY: currentY,
+          head: [[`REGISTRO No. ${idx + 1}: ACTA NO. ${acta ? acta.numero_acta : idActa}`, 'ESPECIFICACIONES INSTITUCIONALES']],
+          body: [
+            ['Tipo de Sesión', acta ? (acta.tipo_sesion || 'Ordinaria') : 'N/A'],
+            ['Fecha y Hora Sesión', acta && acta.fecha_hora ? new Date(acta.fecha_hora).toLocaleString('es-GT') : 'Pendiente'],
+            ['Estado Actual', acta ? (acta.estado_acta || 'Redacción') : 'N/A'],
+            ['Impresa en Hojas Móviles', acta && acta.hojas_moviles ? 'SI (Registrado)' : 'NO']
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [15, 23, 42], fontSize: 8 },
+          margin: { left: 12, right: 12 }
+        });
+
+        const { data: historial } = await supabaseClient
+          .from('historial_estados_acta')
+          .select('*')
+          .eq('acta_id', idActa)
+          .order('id', { ascending: true });
+
+        const rowsAuditoria = [];
+        for (const h of (historial || [])) {
+          const nombreUsuarioCompleto = await obtenerNombreCompletoUsuario(h.usuario);
+          rowsAuditoria.push([
+            new Date(h.fecha_cambio).toLocaleString('es-GT'),
+            h.estado_nuevo || 'Fase Actualizada',
+            h.detalle || 'Apertura/Modificación del registro',
+            nombreUsuarioCompleto
+          ]);
+        }
+
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 2,
+          head: [['Fecha / Hora', 'Fase / Estado', 'Detalle de la Operación', 'Responsable (Nombre Completo)']],
+          body: rowsAuditoria.length > 0 ? rowsAuditoria : [['-', 'Sin registro de cambios de estado', '-', '-']],
+          theme: 'grid',
+          headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [30, 41, 59], fontSize: 7 },
+          margin: { left: 12, right: 12 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+      }
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      const fechaImpresion = new Date().toLocaleString('es-GT', { dateStyle: 'long', timeStyle: 'short' });
+
+      for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+
+        if (logoPNG) {
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: 0.07 }));
+          doc.addImage(logoPNG, 'PNG', 35, 80, 140, 140);
+          doc.restoreGraphicsState();
+          doc.addImage(logoPNG, 'PNG', 12, 8, 18, 18);
+        }
+
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 33, 14);
+
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        doc.text('SECRETARÍA MUNICIPAL — CONCEJO MUNICIPAL', 33, 19);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text('AUDITORÍA DE ETAPAS, TIEMPOS Y TRAZABILIDAD DE ACTAS', 33, 24);
+
+        doc.setDrawColor(15, 23, 42);
+        doc.setLineWidth(0.5);
+        doc.line(12, 28, 198, 28);
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.line(12, 282, 198, 282);
+
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generado por: ${nombreGenerador} | Emisión: ${fechaImpresion}`, 12, 287);
+        doc.text(`Página ${i} de ${totalPaginas}`, 198, 287, { align: 'right' });
+      }
+
+      doc.save(`Auditoria_Actas_Concejo_${Date.now()}.pdf`);
     }
   </script>
 </body>
