@@ -13,12 +13,8 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
 
-  <script>
-    const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub2pvdGRnZWdmbXd1ZWtzam1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDEwMjIsImV4cCI6MjEwNTA3NzAyMn0.cPd5_f3529iFvLWJDhkQ_KNanD6D_YLcZkU67MtHAds';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  </script>
-
+  <!-- SCRIPTS REUTILIZABLES -->
+  <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/sidebar.js"></script>
 
@@ -33,7 +29,6 @@
 
   <div id="sidebar-container"></div>
 
-  <!-- CONTENEDOR AJUSTADO A md:pl-28 PARA ACTIVACIÓN DEL MOUSE -->
   <div class="flex-1 flex flex-col min-h-screen w-full md:pl-28 transition-all duration-300">
     <main class="p-4 sm:p-8 flex-1 space-y-6 max-w-7xl mx-auto w-full">
       
@@ -84,7 +79,7 @@
     </main>
 
     <footer class="p-6 text-center text-xs text-slate-500 border-t border-slate-800/80">
-      &copy; 2026 Municipalidad de Quetzaltenango &bull; Secretaría Municipal &bull; Panel de Administración
+      &copy; 2026 Municipalidad de Quetzaltenango &bull; Secretaría Municipal
     </footer>
   </div>
 
@@ -138,7 +133,6 @@
   <script>
     const userSesion = verificarSesion();
     if (!userSesion || (userSesion.rol || '').toLowerCase() !== 'admin') {
-      alert('Acceso restringido: Se requieren permisos de Administrador.');
       window.location.href = 'index.html';
     }
 
@@ -242,16 +236,18 @@
         if (idEdit) {
           const { error } = await supabaseClient.from('usuarios').update(obj).eq('id', idEdit);
           if (error) throw error;
+          mostrarNotificacion('Usuario actualizado correctamente', 'exito');
         } else {
           const { error } = await supabaseClient.from('usuarios').insert([obj]);
           if (error) throw error;
+          mostrarNotificacion('Usuario registrado exitosamente', 'exito');
         }
         
         cerrarModalUsuario();
         await cargarUsuarios();
       } catch (err) { 
         console.error(err);
-        alert('Error al guardar datos de usuario: ' + (err.message || 'Error de conexión')); 
+        mostrarNotificacion('Error al guardar datos de usuario', 'error');
       }
     }
   </script>
