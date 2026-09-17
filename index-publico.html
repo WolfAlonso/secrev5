@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secretaría Municipal de Quetzaltenango - Sistema de Gestión Documental</title>
+
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Sistema de gestión documental de la Secretaría Municipal de Quetzaltenango: actas, agendas, acuerdos, expedientes y auditoría.">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <style>
+    .bg-publico {
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 58, 138, 0.88)), url('img/bg-login.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .glass-hover:hover {
+      background: rgba(30, 58, 138, 0.75);
+      transform: translateY(-3px);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .float-anim { animation: float 3s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-publico min-h-screen text-slate-100 font-sans antialiased">
+
+  <!-- ============================================================== -->
+  <!-- NAVBAR -->
+  <!-- ============================================================== -->
+  <nav class="sticky top-0 z-50 glass border-b border-slate-700/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-11 h-11 rounded-2xl bg-cyan-950/70 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+          <img src="img/logo.png" alt="Logo" class="w-7 h-7 object-contain">
+        </div>
+        <div>
+          <h1 class="font-black text-sm text-white leading-tight">Municipalidad de Quetzaltenango</h1>
+          <p class="text-[10px] text-cyan-400 font-extrabold uppercase tracking-widest">Secretaría Municipal</p>
+        </div>
+      </div>
+      <div class="hidden md:flex items-center space-x-6 text-xs font-semibold text-slate-300">
+        <a href="#modulos" class="hover:text-cyan-300 transition">Módulos</a>
+        <a href="#seguridad" class="hover:text-cyan-300 transition">Seguridad</a>
+        <a href="#arquitectura" class="hover:text-cyan-300 transition">Arquitectura</a>
+        <a href="login.html" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition">
+          <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Iniciar Sesión
+        </a>
+      </div>
+      <button onclick="document.getElementById('menu-movil').classList.toggle('hidden')" class="md:hidden p-2 text-cyan-300">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+    <div id="menu-movil" class="hidden md:hidden border-t border-slate-800 px-4 py-3 space-y-2 text-sm">
+      <a href="#modulos" class="block py-2 text-slate-300 hover:text-cyan-300">Módulos</a>
+      <a href="#seguridad" class="block py-2 text-slate-300 hover:text-cyan-300">Seguridad</a>
+      <a href="#arquitectura" class="block py-2 text-slate-300 hover:text-cyan-300">Arquitectura</a>
+      <a href="login.html" class="block py-2 px-4 bg-cyan-600 text-white font-bold rounded-xl text-center">
+        Iniciar Sesión
+      </a>
+    </div>
+  </nav>
+
+  <!-- ============================================================== -->
+  <!-- HERO -->
+  <!-- ============================================================== -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-8 pt-16 pb-12 sm:pt-24 sm:pb-20">
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <div class="space-y-6">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[11px] font-mono">
+          <i class="fa-solid fa-shield-halved"></i> <span>Sistema Institucional Autorizado</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight text-white tracking-tight">
+          Sistema de Gestión <br>
+          <span class="gradient-text">Documental Municipal</span>
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl">
+          Plataforma centralizada para el control de <strong class="text-cyan-300">actas de concejo</strong>, 
+          <strong class="text-cyan-300">agendas</strong>, <strong class="text-cyan-300">acuerdos</strong>, 
+          <strong class="text-cyan-300">expedientes</strong> y <strong class="text-cyan-300">recursos administrativos</strong> 
+          con auditoría completa y trazabilidad institucional.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <a href="#modulos" class="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-extrabold rounded-2xl shadow-xl transition flex items-center space-x-2">
+            <i class="fa-solid fa-cubes"></i>
+            <span>Explorar Módulos</span>
+          </a>
+          <a href="login.html" class="px-6 py-3 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold rounded-2xl transition flex items-center space-x-2">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Acceder al Sistema</span>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 pt-6 border-t border-slate-800/80">
+          <div>
+            <p class="text-3xl font-black text-cyan-400">8</p>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Módulos activos</p>
+          </div>
+          <div>
+            <p class="text-3xl font-black text-cyan-400">100%</p>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Auditable</p>
+          </div>
+          <div>
+            <p class="text-3xl font-black text-cyan-400">24/7</p>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Disponible</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="float-anim glass rounded-3xl border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.15)] p-6 space-y-3">
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-800/80">
+            <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-400"></div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span class="text-[10px] text-slate-500 font-mono ml-2">Panel Principal</span>
+          </div>
+
+          <div class="bg-slate-950/60 rounded-2xl p-4 border border-slate-800">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-2xl bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                <i class="fa-solid fa-book-open"></i>
+              </div>
+              <div>
+                <p class="font-bold text-white text-sm">Actas de Concejo</p>
+                <p class="text-[10px] text-emerald-400">● Sistema operativo</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800">
+              <i class="fa-solid fa-file-signature text-amber-400 text-xs"></i>
+              <p class="text-[11px] font-bold text-white mt-1">Acuerdos</p>
+              <p class="text-[9px] text-slate-500">Alcaldía y Concejo</p>
+            </div>
+            <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800">
+              <i class="fa-solid fa-diagram-project text-emerald-400 text-xs"></i>
+              <p class="text-[11px] font-bold text-white mt-1">Expedientes</p>
+              <p class="text-[9px] text-slate-500">Con trazabilidad</p>
+            </div>
+            <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800">
+              <i class="fa-solid fa-calendar-days text-cyan-400 text-xs"></i>
+              <p class="text-[11px] font-bold text-white mt-1">Agendas</p>
+              <p class="text-[9px] text-slate-500">Sesiones ordinarias</p>
+            </div>
+            <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800">
+              <i class="fa-solid fa-scale-balanced text-purple-400 text-xs"></i>
+              <p class="text-[11px] font-bold text-white mt-1">Recursos</p>
+              <p class="text-[9px] text-slate-500">Asuntos jurídicos</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- MÓDULOS -->
+  <!-- ============================================================== -->
+  <section id="modulos" class="max-w-7xl mx-auto px-4 sm:px-8 py-16">
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono mb-3">
+        <i class="fa-solid fa-cubes"></i> <span>Módulos del Sistema</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Todo lo que puede hacer</h2>
+      <p class="text-slate-400 mt-3 max-w-2xl mx-auto text-sm">
+        Cada módulo incluye filtrado por año, ordenamiento numérico, auditoría completa y exportación a PDF institucional.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Actas -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-xl">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Actas de Concejo</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Registro y control de actas por tipo de sesión, fecha, estado y hojas móviles. Auditoría completa de modificaciones.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Filtro por año</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría de tiempos</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Reportes PDF</li>
+        </ul>
+      </div>
+
+      <!-- Agendas -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 text-xl">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Agendas de Concejo</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Control documental de agendas oficiales con puntos a tratar, tipo de sesión y adjuntos PDF.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Orden numérico NN-AAAA</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Historial de cambios</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Filtro por año</li>
+        </ul>
+      </div>
+
+      <!-- Convocatorias -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/40 flex items-center justify-center text-purple-400 text-xl">
+            <i class="fa-solid fa-scroll"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Convocatorias</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Módulo independiente para el registro de convocatorias oficiales con número correlativo y fecha programada.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Registro propio</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría de acciones</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Exportación PDF</li>
+        </ul>
+      </div>
+
+      <!-- Acuerdos Alcaldía -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl">
+            <i class="fa-solid fa-file-signature"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Acuerdos de Alcaldía</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Gestión de emisión, expedientes, checklist de notificación y registro completo de tiempos por fase.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Fases: Redacción → Notificado</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Notificación total</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría por modificación</li>
+        </ul>
+      </div>
+
+      <!-- Acuerdos Concejo -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/40 flex items-center justify-center text-rose-400 text-xl">
+            <i class="fa-solid fa-gavel"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Acuerdos de Concejo</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Resoluciones del Concejo Municipal con ordenamiento por punto-acta-año y control de notificación.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Orden: punto-acta-año</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría completa</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Filtro por año</li>
+        </ul>
+      </div>
+
+      <!-- Expedientes -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-xl">
+            <i class="fa-solid fa-diagram-project"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Expedientes</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Rastreo completo de movilidad de expedientes con semáforo de estado y historial cronológico.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Traslados con trazabilidad</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Semáforo de estados</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría de movimientos</li>
+        </ul>
+      </div>
+
+      <!-- Recursos -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/40 flex items-center justify-center text-blue-400 text-xl">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">Activo</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Recursos Administrativos</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Control de recursos del área jurídica con estado de notificación y trazabilidad de eventos.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Notificación con toggle</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría por evento</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Reporte PDF con historial</li>
+        </ul>
+      </div>
+
+      <!-- Usuarios -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-center text-yellow-400 text-xl">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold uppercase">Admin</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Gestión de Usuarios</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Administración centralizada de cuentas con roles, contraseñas seguras (bcrypt) y auditoría por IP.
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Contraseñas hasheadas</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Auditoría con IP</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Roles y permisos</li>
+        </ul>
+      </div>
+
+      <!-- Roles -->
+      <div class="glass glass-hover rounded-3xl border border-slate-700/60 p-6 transition-all duration-300">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/40 flex items-center justify-center text-orange-400 text-xl">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <span class="text-[9px] px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold uppercase">Admin</span>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Roles y Permisos</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Catálogo editable de roles con permisos granulares por módulo (lectura / control / sin acceso).
+        </p>
+        <ul class="text-[11px] text-slate-400 space-y-1.5">
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Permisos por módulo</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Roles personalizables</li>
+          <li><i class="fa-solid fa-check text-emerald-400 mr-1.5"></i>Sidebar dinámico</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- SEGURIDAD -->
+  <!-- ============================================================== -->
+  <section id="seguridad" class="max-w-7xl mx-auto px-4 sm:px-8 py-16">
+    <div class="glass rounded-3xl border border-slate-700/60 p-8 sm:p-12">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono mb-3">
+          <i class="fa-solid fa-shield-halved"></i> <span>Seguridad Institucional</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Protección de datos <span class="gradient-text">de nivel institucional</span></h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-950/60 rounded-2xl p-5 border border-slate-800">
+          <i class="fa-solid fa-lock text-cyan-400 text-2xl mb-3"></i>
+          <h3 class="font-bold text-white mb-1 text-sm">Contraseñas con bcrypt</h3>
+          <p class="text-[11px] text-slate-400">Nunca se guardan en texto plano. Hash irreversible de grado industrial.</p>
+        </div>
+
+        <div class="bg-slate-950/60 rounded-2xl p-5 border border-slate-800">
+          <i class="fa-solid fa-user-lock text-cyan-400 text-2xl mb-3"></i>
+          <h3 class="font-bold text-white mb-1 text-sm">Row Level Security</h3>
+          <p class="text-[11px] text-slate-400">RLS activo en todas las tablas. Sin permisos, no hay acceso a datos.</p>
+        </div>
+
+        <div class="bg-slate-950/60 rounded-2xl p-5 border border-slate-800">
+          <i class="fa-solid fa-file-shield text-cyan-400 text-2xl mb-3"></i>
+          <h3 class="font-bold text-white mb-1 text-sm">PDFs con URL firmada</h3>
+          <p class="text-[11px] text-slate-400">Los documentos expiran en 1 hora. Nadie sin autorización puede verlos.</p>
+        </div>
+
+        <div class="bg-slate-950/60 rounded-2xl p-5 border border-slate-800">
+          <i class="fa-solid fa-list-check text-cyan-400 text-2xl mb-3"></i>
+          <h3 class="font-bold text-white mb-1 text-sm">Auditoría con IP</h3>
+          <p class="text-[11px] text-slate-400">Cada acción queda registrada con usuario, fecha y dirección IP.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- ARQUITECTURA -->
+  <!-- ============================================================== -->
+  <section id="arquitectura" class="max-w-7xl mx-auto px-4 sm:px-8 py-16">
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-500/40 text-blue-300 text-[10px] font-mono mb-3">
+        <i class="fa-solid fa-server"></i> <span>Arquitectura Moderna</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Infraestructura serverless</h2>
+      <p class="text-slate-400 mt-3 text-sm max-w-2xl mx-auto">Sin servidores que mantener. Escala automáticamente. Costos predecibles.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-5">
+      <div class="glass rounded-3xl border border-slate-700/60 p-6 text-center">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-2xl mb-4">
+          <i class="fa-solid fa-globe"></i>
+        </div>
+        <h3 class="font-bold text-white mb-2">Frontend</h3>
+        <p class="text-xs text-slate-400">Netlify · HTML + Tailwind + JavaScript</p>
+      </div>
+
+      <div class="glass rounded-3xl border border-slate-700/60 p-6 text-center">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl mb-4">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <h3 class="font-bold text-white mb-2">Backend</h3>
+        <p class="text-xs text-slate-400">Supabase · PostgreSQL + Storage + Auth</p>
+      </div>
+
+      <div class="glass rounded-3xl border border-slate-700/60 p-6 text-center">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl mb-4">
+          <i class="fa-solid fa-file-pdf"></i>
+        </div>
+        <h3 class="font-bold text-white mb-2">Reportes</h3>
+        <p class="text-xs text-slate-400">jsPDF · Generación vectorial en el navegador</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- CTA FINAL -->
+  <!-- ============================================================== -->
+  <section class="max-w-4xl mx-auto px-4 sm:px-8 py-16">
+    <div class="glass rounded-3xl border border-cyan-500/30 p-8 sm:p-12 text-center shadow-[0_0_50px_rgba(6,182,212,0.15)]">
+      <i class="fa-solid fa-building-columns text-cyan-400 text-4xl mb-4"></i>
+      <h2 class="text-2xl sm:text-3xl font-black text-white mb-3">¿Listo para explorar el sistema completo?</h2>
+      <p class="text-slate-300 text-sm mb-6 max-w-xl mx-auto">
+        Accede con tus credenciales institucionales para explorar todos los módulos, generar reportes y gestionar la documentación municipal.
+      </p>
+      <a href="login.html" class="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-extrabold rounded-2xl shadow-xl transition">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Acceder al Sistema</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- FOOTER -->
+  <!-- ============================================================== -->
+  <footer class="border-t border-slate-800/80 py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+      <div class="flex items-center space-x-3">
+        <img src="img/logo.png" class="w-8 h-8 object-contain" alt="Logo">
+        <span>&copy; 2026 Municipalidad de Quetzaltenango · Secretaría Municipal</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="login.html" class="hover:text-cyan-300 transition">Acceso</a>
+        <span class="text-slate-700">·</span>
+        <span class="text-[10px]">Sistema interno institucional</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scroll para links internos
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href');
+        if (id === '#') return;
+        const target = document.querySelector(id);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.getElementById('menu-movil')?.classList.add('hidden');
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

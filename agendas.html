@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendas de Concejo - Secretaría Municipal</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <script>
+    const SUPABASE_URL = 'https://ynojotdgegfmwueksjma.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub2pvdGRnZWdmbXd1ZWtzam1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MDEwMjIsImV4cCI6MjEwNTA3NzAyMn0.cPd5_f3529iFvLWJDhkQ_KNanD6D_YLcZkU67MtHAds';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <script src="js/auth.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/notificaciones.js"></script>
+
+  <style>
+    .bg-dashboard-custom {
+      background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.90)), url('img/bg-login.jpg');
+      background-size: cover; background-position: center; background-attachment: fixed;
+    }
+  </style>
+</head>
+<body class="bg-dashboard-custom min-h-screen text-slate-100 font-sans antialiased flex flex-col" onclick="cerrarMenuFlotante(event)">
+
+  <div id="sidebar-container"></div>
+
+  <div class="flex-1 flex flex-col min-h-screen w-full">
+    <header class="md:hidden bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-30">
+      <span class="font-bold text-sm text-white pl-8">Agendas de Concejo</span>
+      <button onclick="cargarAgendasBD()" class="p-2 text-cyan-400 hover:text-white bg-slate-800 rounded-xl text-xs"><i class="fa-solid fa-rotate"></i></button>
+    </header>
+
+    <main class="p-4 sm:p-8 flex-1 space-y-6 max-w-7xl mx-auto w-full">
+
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/60 backdrop-blur-md p-6 rounded-3xl border border-slate-700/50 shadow-xl">
+        <div>
+          <h2 class="text-xl font-extrabold text-white tracking-tight flex items-center">
+            <i class="fa-solid fa-calendar-days text-cyan-400 mr-3"></i> Agendas de Concejo
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Control documental de agendas oficiales, puntos y auditoría de tiempos</p>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <select id="filtro-anio" onchange="aplicarFiltros()" class="bg-slate-900 border border-slate-700 text-cyan-300 text-xs font-bold rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="">Todos los años</option>
+          </select>
+          <button onclick="generarReporteSeleccionadoPDF()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold rounded-2xl shadow transition flex items-center space-x-2 text-xs">
+            <i class="fa-solid fa-file-pdf text-amber-400"></i>
+            <span>Exportar Auditoría Seleccionada</span>
+          </button>
+          <button id="btn-nueva-agenda" onclick="abrirModalAgenda()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-5 py-2.5 rounded-2xl font-bold transition flex items-center shadow-lg shadow-cyan-900/40 hidden">
+            <i class="fa-solid fa-plus mr-1.5"></i> Registrar Agenda
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 backdrop-blur-md rounded-3xl border border-slate-700/50 p-6 shadow-2xl space-y-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs text-slate-400 uppercase font-bold border-b border-slate-700/60">
+              <tr>
+                <th class="py-3.5 px-3 text-center w-10">
+                  <input type="checkbox" id="check-todos-agendas" onchange="toggleSeleccionarTodos(this)" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500 cursor-pointer">
+                </th>
+                <th class="py-3.5 px-4">No. Agenda</th>
+                <th class="py-3.5 px-4">Tipo de Sesión</th>
+                <th class="py-3.5 px-4">Fecha y Hora de Sesión</th>
+                <th class="py-3.5 px-4 text-center">Puntos</th>
+                <th class="py-3.5 px-4 text-center">Documento PDF</th>
+                <th class="py-3.5 px-4 text-center">Opciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-agendas" class="divide-y divide-slate-700/40">
+              <tr><td colspan="7" class="py-8 text-center text-slate-500 font-medium">Cargando agendas desde la base de datos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-xs text-slate-500 border-t border-slate-800/80">
+      &copy; 2026 Municipalidad de Quetzaltenango &bull; Secretaría Municipal
+    </footer>
+  </div>
+
+  <div id="menu-flotante-opciones" class="fixed z-50 bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl shadow-2xl p-2 hidden flex-col space-y-1 w-56 text-xs transition-all">
+    <button onclick="ejecutarAccionFlotante('auditoria')" class="w-full px-3 py-2 rounded-xl text-amber-300 hover:bg-amber-500/20 transition flex items-center font-semibold">
+      <i class="fa-solid fa-clock-rotate-left mr-2.5 text-amber-400"></i> Auditoría de Tiempos
+    </button>
+    <div id="opciones-edicion-flotante" class="space-y-1 border-t border-slate-800 pt-1">
+      <button onclick="ejecutarAccionFlotante('editar')" class="w-full px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition flex items-center font-semibold">
+        <i class="fa-solid fa-pen-to-square mr-2.5 text-cyan-400"></i> Modificar Datos
+      </button>
+      <button onclick="ejecutarAccionFlotante('eliminar')" class="w-full px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/20 transition flex items-center font-semibold">
+        <i class="fa-solid fa-trash mr-2.5"></i> Eliminar Registro
+      </button>
+    </div>
+  </div>
+
+  <div id="modal-agenda" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 id="modal-titulo-agenda" class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-calendar-plus text-cyan-400 mr-2"></i> Registrar / Modificar Agenda</h3>
+        <button onclick="cerrarModalAgenda()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="guardarAgenda(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-agenda-id">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Número de Agenda</label>
+          <input type="text" id="agenda-numero" required placeholder="Ej. 01-2026" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Tipo de Sesión</label>
+          <select id="agenda-tipo" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="">-- Seleccionar Tipo --</option>
+            <option value="Ordinaria">Ordinaria</option>
+            <option value="Extraordinaria">Extraordinaria</option>
+            <option value="Solemne">Solemne</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Fecha y Hora de la Sesión</label>
+          <input type="datetime-local" id="agenda-fecha" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Puntos de Agenda</label>
+          <textarea id="agenda-puntos" rows="3" placeholder="Listado de puntos a tratar..." class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500"></textarea>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Observaciones</label>
+          <textarea id="agenda-observaciones" rows="2" placeholder="Notas adicionales..." class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:ring-2 focus:ring-cyan-500"></textarea>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Documento PDF</label>
+          <input type="file" id="agenda-pdf" accept=".pdf" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
+          <p id="label-pdf-agenda-actual" class="text-[10px] text-slate-400 mt-1 italic"></p>
+        </div>
+        <div class="flex justify-end space-x-2 pt-4 border-t border-slate-800">
+          <button type="button" onclick="cerrarModalAgenda()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-cyan-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-900/40">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-auditoria" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-lg w-full p-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <div>
+          <h3 id="auditoria-titulo-modal" class="text-base font-bold text-white flex items-center"><i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i> Auditoría de Tiempos</h3>
+          <p class="text-[11px] text-slate-400">Historial de evolución y modificaciones</p>
+        </div>
+        <button onclick="cerrarModalAuditoria()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="auditoria-contenido" class="space-y-4">
+        <p class="text-xs text-slate-400 text-center py-6">Calculando tiempos transcurridos...</p>
+      </div>
+
+      <div class="flex justify-end pt-4 border-t border-slate-800">
+        <button onclick="cerrarModalAuditoria()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl font-semibold">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const userSesion = verificarSesion();
+    if (!userSesion || !tienePermisoLectura('agendas')) {
+      alert('Acceso restringido: No cuenta con permisos para consultar este módulo.');
+      window.location.href = 'index.html';
+    }
+
+    let cacheAgendas = [];
+    let agendaSeleccionadaId = null;
+    let permitirEdicion = tienePermisoControl('agendas');
+
+    if (permitirEdicion) {
+      document.getElementById('btn-nueva-agenda').classList.remove('hidden');
+    } else {
+      document.getElementById('opciones-edicion-flotante').classList.add('hidden');
+    }
+    cargarAgendasBD();
+
+    function toggleSeleccionarTodos(masterCheck) {
+      document.querySelectorAll('.check-agenda').forEach(chk => chk.checked = masterCheck.checked);
+    }
+
+    // ==========================================================================
+    // ORDENAMIENTO NUMÉRICO: NN-AAAA
+    // ==========================================================================
+    function parseNumeroAgenda(str) {
+      if (!str) return { num: 999999, anio: 0 };
+      const partes = String(str).trim().split('-').filter(Boolean);
+      if (partes.length === 0) return { num: 999999, anio: 0 };
+      const anio = parseInt(partes[partes.length - 1], 10) || 0;
+      const num = parseInt(partes[0], 10) || 999999;
+      return { num, anio };
+    }
+
+    function compararAgendas(a, b) {
+      const pa = parseNumeroAgenda(a.numero_agenda);
+      const pb = parseNumeroAgenda(b.numero_agenda);
+      if (pa.anio !== pb.anio) return pa.anio - pb.anio;
+      return pa.num - pb.num;
+    }
+
+    function obtenerAnioAgenda(item) {
+      const p = parseNumeroAgenda(item.numero_agenda);
+      if (p.anio > 1900) return p.anio;
+      if (item.fecha_hora_sesion) {
+        const y = new Date(item.fecha_hora_sesion).getFullYear();
+        if (!isNaN(y) && y > 1900) return y;
+      }
+      return null;
+    }
+
+    // ==========================================================================
+    // FILTRO POR AÑO
+    // ==========================================================================
+    function poblarFiltroAnios() {
+      const anios = new Set();
+      cacheAgendas.forEach(a => {
+        const y = obtenerAnioAgenda(a);
+        if (y) anios.add(y);
+      });
+      const sorted = Array.from(anios).sort((a, b) => b - a);
+      const select = document.getElementById('filtro-anio');
+      const valorActual = select.value;
+      select.innerHTML = '<option value="">Todos los años</option>' +
+        sorted.map(y => `<option value="${y}">${y}</option>`).join('');
+      if (valorActual && sorted.includes(parseInt(valorActual, 10))) {
+        select.value = valorActual;
+      }
+    }
+
+    async function aplicarFiltros() {
+      const anio = document.getElementById('filtro-anio').value;
+      let datos = cacheAgendas;
+      if (anio) {
+        datos = cacheAgendas.filter(a => obtenerAnioAgenda(a) === parseInt(anio, 10));
+      }
+      await renderAgendas(datos);
+    }
+
+    // ==========================================================================
+    // MENÚ FLOTANTE
+    // ==========================================================================
+    function abrirMenuFlotante(event, id) {
+      event.stopPropagation();
+      agendaSeleccionadaId = id;
+      const menu = document.getElementById('menu-flotante-opciones');
+      menu.classList.remove('hidden');
+      menu.style.visibility = 'hidden';
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const menuWidth = menu.offsetWidth || 224;
+      const menuHeight = menu.offsetHeight || 180;
+      const margin = 8;
+
+      let left = rect.right - menuWidth;
+      if (left < margin) left = margin;
+      if (left + menuWidth > window.innerWidth - margin) left = window.innerWidth - menuWidth - margin;
+
+      let top = rect.bottom + 6;
+      if (top + menuHeight > window.innerHeight - margin) {
+        top = rect.top - menuHeight - 6;
+        if (top < margin) top = margin;
+      }
+
+      menu.style.top = `${top}px`;
+      menu.style.left = `${left}px`;
+      menu.style.visibility = '';
+    }
+
+    function cerrarMenuFlotante(e) {
+      const menu = document.getElementById('menu-flotante-opciones');
+      if (menu && !menu.contains(e.target)) menu.classList.add('hidden');
+    }
+
+    window.addEventListener('scroll', () => {
+      const menu = document.getElementById('menu-flotante-opciones');
+      if (menu && !menu.classList.contains('hidden')) menu.classList.add('hidden');
+    }, true);
+
+    function ejecutarAccionFlotante(accion) {
+      document.getElementById('menu-flotante-opciones').classList.add('hidden');
+      if (!agendaSeleccionadaId) return;
+
+      const item = cacheAgendas.find(a => a.id === agendaSeleccionadaId);
+      if (!item) return;
+      if (accion === 'auditoria') verAuditoriaAgenda(item);
+      else if (accion === 'editar') abrirModalAgenda(item.id);
+      else if (accion === 'eliminar') eliminarAgenda(item.id);
+    }
+
+    // ==========================================================================
+    // CARGA DE DATOS
+    // ==========================================================================
+    async function cargarAgendasBD() {
+      const tbody = document.getElementById('tabla-agendas');
+      try {
+        const { data, error } = await supabaseClient.from('agendas').select('*');
+        if (error) {
+          console.error('[AGENDA] Error al cargar:', error);
+          tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-rose-400">Error al cargar agendas: ${error.message}</td></tr>`;
+          return;
+        }
+        cacheAgendas = data || [];
+        poblarFiltroAnios();
+        await aplicarFiltros();
+      } catch (err) {
+        console.error('[AGENDA] Excepción al cargar:', err);
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-rose-400">Error inesperado al cargar agendas.</td></tr>`;
+      }
+    }
+
+    async function renderAgendas(data) {
+      const tbody = document.getElementById('tabla-agendas');
+      const ordenados = [...(data || [])].sort(compararAgendas);
+
+      if (ordenados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No hay agendas registradas para este filtro.</td></tr>`;
+        return;
+      }
+
+      const rutasPdf = ordenados.filter(a => a.enlace_pdf).map(a => a.enlace_pdf);
+      const urlsFirmadas = await obtenerUrlsFirmadasPDF(rutasPdf);
+
+      tbody.innerHTML = ordenados.map(a => {
+        let fechaFmt = '<span class="text-slate-500">Pendiente</span>';
+        if (a.fecha_hora_sesion) {
+          const dt = new Date(a.fecha_hora_sesion);
+          fechaFmt = `${dt.toLocaleDateString('es-GT')} / ${dt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        const puntosPreview = a.puntos_agenda
+          ? `<span class="text-xs text-slate-400" title="${(a.puntos_agenda || '').replace(/"/g, '&quot;')}">${(a.puntos_agenda.length > 30 ? a.puntos_agenda.slice(0, 30) + '…' : a.puntos_agenda)}</span>`
+          : '<span class="text-slate-600 text-xs">—</span>';
+
+        const ruta = a.enlace_pdf ? extraerRutaPDF(a.enlace_pdf) : null;
+        const urlFirmada = ruta ? urlsFirmadas[ruta] : null;
+        const botonPdf = urlFirmada
+          ? `<a href="${urlFirmada}" target="_blank" class="bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-file-pdf mr-1"></i> Ver PDF</a>`
+          : (a.enlace_pdf ? '<span class="text-rose-400 text-xs">PDF no disponible</span>' : '<span class="text-slate-600 text-xs">Sin PDF</span>');
+
+        return `
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3.5 px-3 text-center">
+              <input type="checkbox" value="${a.id}" class="check-agenda w-4 h-4 rounded bg-slate-900 border-slate-700 text-cyan-500 cursor-pointer">
+            </td>
+            <td class="py-3.5 px-4 font-bold text-white">${a.numero_agenda || '-'}</td>
+            <td class="py-3.5 px-4">${a.tipo_sesion || '-'}</td>
+            <td class="py-3.5 px-4 text-xs text-cyan-300 font-mono">${fechaFmt}</td>
+            <td class="py-3.5 px-4 text-center">${puntosPreview}</td>
+            <td class="py-3.5 px-4 text-center">${botonPdf}</td>
+            <td class="py-3.5 px-4 text-center">
+              <button onclick="abrirMenuFlotante(event, ${a.id})" class="p-2.5 bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white rounded-xl transition shadow">
+                <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==========================================================================
+    // MODALES
+    // ==========================================================================
+    function abrirModalAgenda(id = null) {
+      document.getElementById('modal-agenda').classList.remove('hidden');
+      document.getElementById('agenda-pdf').value = '';
+      if (id) {
+        document.getElementById('modal-titulo-agenda').innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-400 mr-2"></i> Modificar Agenda';
+        const item = cacheAgendas.find(a => a.id === id);
+        if (item) {
+          document.getElementById('edit-agenda-id').value = item.id;
+          document.getElementById('agenda-numero').value = item.numero_agenda || '';
+          document.getElementById('agenda-tipo').value = item.tipo_sesion || '';
+          if (item.fecha_hora_sesion) document.getElementById('agenda-fecha').value = item.fecha_hora_sesion.slice(0, 16);
+          else document.getElementById('agenda-fecha').value = '';
+          document.getElementById('agenda-puntos').value = item.puntos_agenda || '';
+          document.getElementById('agenda-observaciones').value = item.observaciones || '';
+          document.getElementById('label-pdf-agenda-actual').textContent = item.enlace_pdf ? `PDF actual: ${extraerRutaPDF(item.enlace_pdf).split('/').pop()}` : 'Sin archivo adjunto';
+        }
+      } else {
+        document.getElementById('modal-titulo-agenda').innerHTML = '<i class="fa-solid fa-calendar-plus text-cyan-400 mr-2"></i> Registrar Nueva Agenda';
+        document.getElementById('edit-agenda-id').value = '';
+        document.getElementById('agenda-numero').value = '';
+        document.getElementById('agenda-tipo').value = '';
+        document.getElementById('agenda-fecha').value = '';
+        document.getElementById('agenda-puntos').value = '';
+        document.getElementById('agenda-observaciones').value = '';
+        document.getElementById('label-pdf-agenda-actual').textContent = '';
+      }
+    }
+    function cerrarModalAgenda() { document.getElementById('modal-agenda').classList.add('hidden'); }
+    function cerrarModalAuditoria() { document.getElementById('modal-auditoria').classList.add('hidden'); }
+
+    // ==========================================================================
+    // GUARDAR CON HISTORIAL DE MODIFICACIONES
+    // ==========================================================================
+    async function guardarAgenda(e) {
+      e.preventDefault();
+      if (!permitirEdicion) return;
+
+      const idEdit = document.getElementById('edit-agenda-id').value;
+      const file = document.getElementById('agenda-pdf').files[0];
+      let urlPdf = null;
+
+      try {
+        if (file) {
+          urlPdf = await subirPDFDocumento(file, 'agendas');
+        }
+
+        const obj = {
+          numero_agenda: document.getElementById('agenda-numero').value.trim(),
+          tipo_sesion: document.getElementById('agenda-tipo').value || null,
+          fecha_hora_sesion: document.getElementById('agenda-fecha').value || null,
+          puntos_agenda: document.getElementById('agenda-puntos').value.trim() || null,
+          observaciones: document.getElementById('agenda-observaciones').value.trim() || null
+        };
+        if (urlPdf) obj.enlace_pdf = urlPdf;
+
+        if (idEdit) {
+          const itemOriginal = cacheAgendas.find(a => a.id === parseInt(idEdit, 10));
+          if (!itemOriginal) { mostrarNotificacion('No se encontró el registro.', 'error'); return; }
+
+          const { error } = await supabaseClient.from('agendas').update(obj).eq('id', idEdit);
+          if (error) { console.error(error); mostrarNotificacion('ERROR al modificar: ' + error.message, 'error'); return; }
+
+          const cambios = [];
+          if ((itemOriginal.numero_agenda || '') !== (obj.numero_agenda || '')) cambios.push('N° Agenda');
+          if ((itemOriginal.tipo_sesion || '') !== (obj.tipo_sesion || '')) cambios.push('Tipo Sesión');
+          if ((itemOriginal.fecha_hora_sesion || '') !== (obj.fecha_hora_sesion || '')) cambios.push('Fecha Sesión');
+          if ((itemOriginal.puntos_agenda || '') !== (obj.puntos_agenda || '')) cambios.push('Puntos');
+          if ((itemOriginal.observaciones || '') !== (obj.observaciones || '')) cambios.push('Observaciones');
+          if (urlPdf) cambios.push('PDF adjunto');
+
+          if (cambios.length > 0) {
+            await supabaseClient.from('historial_estados_agenda').insert([{
+              agenda_id: idEdit,
+              estado_anterior: itemOriginal.tipo_sesion || '—',
+              estado_nuevo: obj.tipo_sesion || '—',
+              usuario: userSesion.usuario,
+              detalle: `Modificación de datos: ${cambios.join(', ')}`
+            }]);
+          }
+          mostrarNotificacion('¡Agenda modificada con éxito!', 'exito');
+        } else {
+          const { data: creada, error } = await supabaseClient.from('agendas').insert([obj]).select().single();
+          if (error) { console.error(error); mostrarNotificacion('ERROR al guardar: ' + error.message, 'error'); return; }
+
+          await supabaseClient.from('historial_estados_agenda').insert([{
+            agenda_id: creada.id,
+            estado_anterior: 'Inicio',
+            estado_nuevo: obj.tipo_sesion || 'Registrada',
+            usuario: userSesion.usuario,
+            detalle: 'Apertura de registro de agenda'
+          }]);
+          mostrarNotificacion('¡Agenda registrada con éxito!', 'exito');
+        }
+
+        cerrarModalAgenda();
+        cargarAgendasBD();
+      } catch (err) {
+        console.error('[AGENDA] Excepción:', err);
+        mostrarNotificacion('Error inesperado: ' + (err.message || err), 'error');
+      }
+    }
+
+    async function eliminarAgenda(id) {
+      if (!permitirEdicion) return;
+      if (!confirm('¿Está seguro de eliminar esta agenda?')) return;
+      const { error } = await supabaseClient.from('agendas').delete().eq('id', id);
+      if (error) { mostrarNotificacion('ERROR al eliminar: ' + error.message, 'error'); return; }
+      mostrarNotificacion('Agenda eliminada correctamente.', 'exito');
+      cargarAgendasBD();
+    }
+
+    // ==========================================================================
+    // AUDITORÍA
+    // ==========================================================================
+    async function verAuditoriaAgenda(item) {
+      document.getElementById('modal-auditoria').classList.remove('hidden');
+      document.getElementById('auditoria-titulo-modal').innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i> Auditoría: Agenda No. ${item.numero_agenda || '-'}`;
+
+      const cont = document.getElementById('auditoria-contenido');
+      cont.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Consultando historial...</p>';
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('historial_estados_agenda')
+          .select('*')
+          .eq('agenda_id', item.id)
+          .order('id', { ascending: false });
+
+        if (error) {
+          cont.innerHTML = `<p class="text-xs text-rose-400 text-center py-6">Error: ${error.message}</p>`;
+          return;
+        }
+
+        const filas = data || [];
+
+        let html = `
+          <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-2 text-xs mb-4">
+            <p class="text-white font-bold">Número: <span class="text-cyan-400">${item.numero_agenda || '-'}</span></p>
+            <p class="text-slate-300">Tipo de Sesión: <b>${item.tipo_sesion || 'N/A'}</b></p>
+            <p class="text-slate-300">Fecha de Sesión: <b>${item.fecha_hora_sesion ? new Date(item.fecha_hora_sesion).toLocaleString('es-GT') : 'Sin fecha programada'}</b></p>
+            <p class="text-slate-400 text-[10px]">Registros de auditoría: <b>${filas.length}</b></p>
+          </div>`;
+
+        const modificaciones = filas.filter(h => (h.detalle || '').toLowerCase().includes('modificación'));
+        const fases = filas.filter(h => !(h.detalle || '').toLowerCase().includes('modificación'));
+
+        if (modificaciones.length > 0) {
+          html += `
+            <div class="mb-4">
+              <p class="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-2 flex items-center">
+                <i class="fa-solid fa-pen-to-square mr-1.5"></i> Modificaciones registradas (${modificaciones.length})
+              </p>
+              <div class="space-y-2">
+                ${modificaciones.map(h => {
+                  const fecha = new Date(h.fecha_cambio);
+                  return `
+                    <div class="bg-amber-950/40 p-3 rounded-2xl border border-amber-500/40 shadow">
+                      <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-amber-200 text-xs"><i class="fa-solid fa-pen mr-1"></i> Modificación</span>
+                        <span class="text-[10px] text-slate-400">${fecha.toLocaleDateString('es-GT')} ${fecha.toLocaleTimeString('es-GT', {hour:'2-digit', minute:'2-digit'})}</span>
+                      </div>
+                      ${h.detalle ? `<p class="text-[11px] text-amber-300 italic mb-1">${h.detalle}</p>` : ''}
+                      <p class="text-[10px] text-slate-400">Realizado por: <span class="text-slate-200 font-semibold">${h.usuario || '-'}</span></p>
+                    </div>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }
+
+        if (fases.length > 0) {
+          html += `
+            <div>
+              <p class="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mb-2 flex items-center">
+                <i class="fa-solid fa-flag mr-1.5"></i> Línea de tiempo (${fases.length})
+              </p>
+              <div class="space-y-3 relative border-l-2 border-slate-700 pl-4 ml-2 text-xs">
+                ${fases.map(h => {
+                  const fecha = new Date(h.fecha_cambio);
+                  return `
+                    <div class="relative">
+                      <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-cyan-500 rounded-full ring-4 ring-slate-900"></div>
+                      <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60 shadow">
+                        <div class="flex justify-between items-center mb-1">
+                          <span class="font-bold text-white text-xs">${h.estado_nuevo || '-'}</span>
+                          <span class="text-[10px] text-slate-400">${fecha.toLocaleDateString('es-GT')} ${fecha.toLocaleTimeString('es-GT', {hour:'2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        ${h.detalle ? `<p class="text-[10px] text-slate-400 italic mb-1">${h.detalle}</p>` : ''}
+                        <p class="text-[10px] text-slate-500">Registrado por: <span class="text-slate-300 font-semibold">${h.usuario || '-'}</span></p>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }
+
+        if (filas.length === 0) {
+          html += '<p class="text-xs text-slate-500 text-center py-6">No hay registros de auditoría para esta agenda.</p>';
+        }
+
+        cont.innerHTML = html;
+      } catch (e) {
+        console.error('[AUDITORIA] Excepción:', e);
+        cont.innerHTML = '<p class="text-xs text-rose-400 text-center py-6">Error inesperado al consultar la auditoría.</p>';
+      }
+    }
+
+    // ==========================================================================
+    // PDF CON HISTORIAL
+    // ==========================================================================
+    async function obtenerLogoOficialRutaFija() {
+      try {
+        const respuesta = await fetch('img/logo.png');
+        if (!respuesta.ok) throw new Error();
+        const blob = await respuesta.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function obtenerNombreCompletoUsuario(username) {
+      if (!username) return 'Oficial de Secretaría Municipal';
+      try {
+        const { data, error } = await supabaseClient.rpc('obtener_nombre_usuario', { p_usuario: username });
+        if (error) return username;
+        return data || username;
+      } catch (e) { return username; }
+    }
+
+    async function generarReporteSeleccionadoPDF() {
+      const seleccionados = Array.from(document.querySelectorAll('.check-agenda:checked')).map(cb => Number(cb.value));
+
+      if (seleccionados.length === 0) {
+        alert('Por favor selecciona al menos un registro con las casillas de verificación para exportar el reporte.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('portrait');
+      const logoPNG = await obtenerLogoOficialRutaFija();
+      const nombreGenerador = await obtenerNombreCompletoUsuario(userSesion.usuario);
+
+      let currentY = 36;
+
+      for (let idx = 0; idx < seleccionados.length; idx++) {
+        const idItem = seleccionados[idx];
+        const item = cacheAgendas.find(a => Number(a.id) === idItem);
+        if (!item) continue;
+
+        if (idx > 0 && currentY > 210) {
+          doc.addPage();
+          currentY = 36;
+        }
+
+        doc.autoTable({
+          startY: currentY,
+          head: [[`REGISTRO No. ${idx + 1}: AGENDA ${item.numero_agenda || '-'}`, 'INFORMACIÓN OFICIAL']],
+          body: [
+            ['Número de Agenda', item.numero_agenda || '-'],
+            ['Tipo de Sesión', item.tipo_sesion || 'N/A'],
+            ['Fecha y Hora de Sesión', item.fecha_hora_sesion ? new Date(item.fecha_hora_sesion).toLocaleString('es-GT') : 'Pendiente'],
+            ['Puntos de Agenda', item.puntos_agenda || '-'],
+            ['Observaciones', item.observaciones || '-']
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [15, 23, 42], fontSize: 8 },
+          margin: { left: 12, right: 12 }
+        });
+
+        const { data: historial } = await supabaseClient
+          .from('historial_estados_agenda')
+          .select('*')
+          .eq('agenda_id', item.id)
+          .order('id', { ascending: true });
+
+        const filasAuditoria = (historial || []).map(h => {
+          const f = new Date(h.fecha_cambio);
+          const fechaFmt = `${f.toLocaleDateString('es-GT')} ${f.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}`;
+          const esMod = (h.detalle || '').toLowerCase().includes('modificación');
+          return [
+            fechaFmt,
+            h.estado_anterior || '—',
+            h.estado_nuevo || '—',
+            h.usuario || '-',
+            (esMod ? '[MOD] ' : '') + (h.detalle || '-')
+          ];
+        });
+
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 3,
+          head: [['Fecha / Hora', 'Fase Anterior', 'Fase Nueva', 'Responsable', 'Detalle / Cambio']],
+          body: filasAuditoria.length > 0 ? filasAuditoria : [['-', 'Sin registros de auditoría', '-', '-', '-']],
+          theme: 'grid',
+          headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fillColor: [255, 255, 255], textColor: [30, 41, 59], fontSize: 7 },
+          columnStyles: {
+            0: { cellWidth: 32 },
+            1: { cellWidth: 26 },
+            2: { cellWidth: 26 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 'auto' }
+          },
+          margin: { left: 12, right: 12 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+      }
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      const fechaImpresion = new Date().toLocaleString('es-GT', { dateStyle: 'long', timeStyle: 'short' });
+
+      for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        if (logoPNG) {
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: 0.07 }));
+          doc.addImage(logoPNG, 'PNG', 35, 80, 140, 140);
+          doc.restoreGraphicsState();
+          doc.addImage(logoPNG, 'PNG', 12, 8, 18, 18);
+        }
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('MUNICIPALIDAD DE QUETZALTENANGO', 33, 14);
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        doc.text('SECRETARÍA MUNICIPAL — AGENDAS DE CONCEJO', 33, 19);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text('REPORTE CONSOLIDADO Y CONTROL DOCUMENTAL', 33, 24);
+        doc.setDrawColor(15, 23, 42);
+        doc.setLineWidth(0.5);
+        doc.line(12, 28, 198, 28);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.line(12, 282, 198, 282);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generado por: ${nombreGenerador} | Emisión: ${fechaImpresion}`, 12, 287);
+        doc.text(`Página ${i} de ${totalPaginas}`, 198, 287, { align: 'right' });
+      }
+
+      doc.save(`Reporte_Agendas_${Date.now()}.pdf`);
+    }
+  </script>
+</body>
+</html>
